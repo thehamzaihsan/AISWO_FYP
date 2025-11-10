@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { requestFcmToken } from "./fcm";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 
 // Pages
 import LandingPage from "./LandingPage";
@@ -8,7 +15,9 @@ import BinsList from "./BinsList";
 import BinDashboard from "./BinDashboard";
 import WeatherForecast from "./WeatherForecast";
 import AdminDashboard from "./AdminDashboard";
+import EmployeeDashboard from "./EmployeeDashboard";
 import ChatBot from "./ChatBot";
+import Chatbot from "./components/Chatbot"; // New Gemini AI Chatbot
 import Footer from "./Footer";
 import Login from "./Login";
 
@@ -27,39 +36,53 @@ function Navigation({ showChatBot, setShowChatBot, user, onLogout }) {
           Smart Bins
         </Link>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-            <Link to="/" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              🏠 Home
-            </Link>
-            <Link to="/dashboard" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              📊 Dashboard
-            </Link>
-            <Link to="/weather" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              🌤️ Weather
-            </Link>
+        <div className="nav-links">
+          <Link to="/" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+            🏠 Home
+          </Link>
+          <Link to="/dashboard" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+            📊 Dashboard
+          </Link>
+          <Link to="/weather" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+            🌤️ Weather
+          </Link>
+          {user?.role === 'admin' && (
             <Link to="/admin" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
               ⚙️ Admin
             </Link>
+          )}
+          {user && user.role !== 'admin' && (
+            <Link to="/my-bins" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+              🧹 My Bins
+            </Link>
+          )}
+          {user && (
+            <span className="nav-role-pill">
+              {user.role === 'admin' ? 'Admin' : 'Field Operator'}
+            </span>
+          )}
+          <button
+            onClick={() => setShowChatBot(!showChatBot)}
+            className="btn btn-primary"
+            style={{ fontSize: 'var(--font-size-sm)' }}
+            aria-label="Open AI Chat Assistant"
+          >
+            🤖 Chat
+          </button>
+          {user ? (
             <button
-              onClick={() => setShowChatBot(!showChatBot)}
-              className="btn btn-primary"
+              onClick={onLogout}
+              className="btn btn-secondary"
               style={{ fontSize: 'var(--font-size-sm)' }}
-              aria-label="Open AI Chat Assistant"
+              aria-label="Logout"
             >
-              🤖 Chat
+              🚪 Logout
             </button>
-            {user && (
-              <button
-                onClick={onLogout}
-                className="btn btn-secondary"
-                style={{ fontSize: 'var(--font-size-sm)' }}
-                aria-label="Logout"
-              >
-                🚪 Logout
-              </button>
-            )}
-          </div>
+          ) : (
+            <Link to="/login" className="btn btn-primary" style={{ fontSize: 'var(--font-size-sm)' }}>
+              🔑 Login
+            </Link>
+          )}
         </div>
       </div>
     </nav>
@@ -152,12 +175,26 @@ function App() {
             <Route 
               path="/admin" 
               element={
-                user ? (
+                user?.role === 'admin' ? (
                   <AdminDashboard />
+                ) : user ? (
+                  <Navigate to={user.role === 'admin' ? '/admin' : '/my-bins'} replace />
                 ) : (
                   <Login onLogin={handleLogin} />
                 )
               } 
+            />
+
+            {/* Employee / Operator Dashboard */}
+            <Route 
+              path="/my-bins" 
+              element={
+                user
+                  ? user.role === 'admin'
+                    ? <Navigate to="/admin" replace />
+                    : <EmployeeDashboard user={user} />
+                  : <Login onLogin={handleLogin} />
+              }
             />
 
             {/* 404 page */}
@@ -168,8 +205,11 @@ function App() {
         {/* Footer */}
         <Footer />
         
-        {/* ChatBot */}
+        {/* Old ChatBot */}
         <ChatBot isOpen={showChatBot} onClose={() => setShowChatBot(false)} />
+        
+        {/* New Gemini AI Chatbot - Floating Widget */}
+        <Chatbot />
       </Router>
     </div>
   );

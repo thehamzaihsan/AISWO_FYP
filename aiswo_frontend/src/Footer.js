@@ -46,15 +46,15 @@ function Footer() {
             <div className="contact-info">
               <div className="contact-item">
                 <span className="contact-icon">📧</span>
-                <span>hassanasim337@gmail.com</span>
+                <span>m.charaghyousafkhan@gmail.com</span>
               </div>
               <div className="contact-item">
                 <span className="contact-icon">📱</span>
-                <span>+92 330-5241433</span>
+                <span>+92 316-1512718</span>
               </div>
               <div className="contact-item">
                 <span className="contact-icon">📍</span>
-                <span>123 Green Street, Eco City</span>
+                <span>Bahria University, Islamabad</span>
               </div>
             </div>
           </div>

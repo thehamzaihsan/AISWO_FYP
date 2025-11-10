@@ -15,46 +15,60 @@ let firestore = null;
 
 try {
   const serviceAccount = require("./serviceAccountKey.json");
+  
+  // Auto-detect database URL from project ID
+  const projectId = serviceAccount.project_id;
+  const databaseURL = process.env.FIREBASE_DATABASE_URL || 
+                     `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`;
+  
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://aiswo-simple-default-rtdb.asia-southeast1.firebasedatabase.app"
+    databaseURL: databaseURL
   });
+  
   db = admin.database();
   firestore = admin.firestore();
   console.log("✅ Firebase connected successfully");
+  console.log(`📊 Project: ${projectId}`);
+  console.log(`🔗 Database: ${databaseURL}`);
 } catch (error) {
   console.log("⚠️ Firebase not configured - running in demo mode");
   console.log("To enable Firebase, add serviceAccountKey.json file");
+  console.log("Error:", error.message);
 }
 
 // 🔹 Dummy bins (bin2, bin3)
 const dummyBins = {
   bin2: {
-    weightKg: 12,
-    fillPct: 85,
-    status: "Full",
+    weightKg: 9.2,
+    fillPct: 92,
+    status: "NEEDS_EMPTYING",
     updatedAt: new Date().toISOString(),
     name: "Main Street Bin",
     location: "Main Street, Downtown",
-    capacity: 50,
+    capacity: 10,
     operatorId: "op1",
+    operatorEmail: "m.charagh02@gmail.com",
     history: [
-      { ts: "2025-09-20 10:00", weightKg: 10, fillPct: 70 },
-      { ts: "2025-09-20 11:00", weightKg: 12, fillPct: 85 }
+      { ts: "2025-10-08 11:00", weightKg: 8.5, fillPct: 85 },
+      { ts: "2025-10-08 11:30", weightKg: 8.8, fillPct: 88 },
+      { ts: "2025-10-08 12:00", weightKg: 9.2, fillPct: 92 }
     ]
   },
   bin3: {
-    weightKg: 7,
-    fillPct: 50,
-    status: "Normal",
+    weightKg: 5.1,
+    fillPct: 51,
+    status: "OK",
     updatedAt: new Date().toISOString(),
     name: "Park Avenue Bin",
     location: "Park Avenue, Central Park",
-    capacity: 40,
+    capacity: 10,
     operatorId: "op2",
+    operatorEmail: "m.charagh02@gmail.com",
     history: [
-      { ts: "2025-09-20 10:00", weightKg: 6, fillPct: 45 },
-      { ts: "2025-09-20 11:00", weightKg: 7, fillPct: 50 }
+      { ts: "2025-10-08 10:00", weightKg: 4.8, fillPct: 48 },
+      { ts: "2025-10-08 10:30", weightKg: 4.9, fillPct: 49 },
+      { ts: "2025-10-08 11:00", weightKg: 5.1, fillPct: 51 }
     ]
   }
 };
@@ -106,20 +120,84 @@ function generateWeightedBinData(realBinData, binId) {
 const dummyOperators = {
   op1: {
     name: "John Smith",
-    email: "john.smith@smartbins.com",
+    email: "m.charagh02@gmail.com",
     phone: "+1-555-0123",
     assignedBins: ["bin2"],
     createdAt: new Date().toISOString()
   },
   op2: {
     name: "Sarah Johnson",
-    email: "sarah.johnson@smartbins.com",
+    email: "m.charagh02@gmail.com",
     phone: "+1-555-0124",
     assignedBins: ["bin3"],
     createdAt: new Date().toISOString()
   }
 };
 
+const operatorTaskTemplates = [
+  { id: "inspect", label: "Inspect assigned bins within your zone" },
+  { id: "report", label: "Report any hardware or location issues" },
+  { id: "confirm-empty", label: "Confirm bins emptied after collection" }
+];
+
+const operatorProgressState = {};
+const operatorTaskState = {};
+
+function ensureOperatorState(operatorId) {
+  if (!operatorProgressState[operatorId]) {
+    operatorProgressState[operatorId] = {
+      completedBins: [],
+      history: []
+    };
+  }
+
+  if (!operatorTaskState[operatorId]) {
+    operatorTaskState[operatorId] = operatorTaskTemplates.map(task => ({
+      ...task,
+      completed: false
+    }));
+  }
+
+  return {
+    progress: operatorProgressState[operatorId],
+    tasks: operatorTaskState[operatorId]
+  };
+}
+
+function updateTaskCompletion(operatorId, taskId, completed) {
+  const { tasks } = ensureOperatorState(operatorId);
+  const nextTasks = tasks.map(task =>
+    task.id === taskId ? { ...task, completed: Boolean(completed) } : task
+  );
+  operatorTaskState[operatorId] = nextTasks;
+  return nextTasks;
+}
+
+function toggleCompletedBin(operatorId, binId, completed, payload = {}) {
+  const { progress } = ensureOperatorState(operatorId);
+  const uniqueSet = new Set(progress.completedBins);
+  if (completed) {
+    uniqueSet.add(binId);
+  } else {
+    uniqueSet.delete(binId);
+  }
+  progress.completedBins = Array.from(uniqueSet);
+  if (completed) {
+    progress.history.push({
+      type: "clear",
+      binId,
+      operatorId,
+      timestamp: new Date().toISOString(),
+      ...payload
+    });
+  }
+  return progress.completedBins;
+}
+
+// Global cache for bins and operators data (for chatbot access)
+let cachedBins = {};
+let cachedOperators = {};
+let cachedWeather = null;
 
 // ================= Email & FCM Notification Setup =================
 
@@ -155,6 +233,12 @@ function sendBinAlertEmail(binId, fillPct, operatorEmail = null) {
 
 // FCM push notification function
 function sendBinAlertPush(binId, fillPct, fcmToken) {
+  // Skip if Firebase is not configured
+  if (!db || !firestore) {
+    console.log('⚠️ Push notifications disabled - Firebase not configured');
+    return;
+  }
+  
   const message = {
     notification: {
       title: `Bin ${binId} is almost full!`,
@@ -164,10 +248,10 @@ function sendBinAlertPush(binId, fillPct, fcmToken) {
   };
   admin.messaging().send(message)
     .then((response) => {
-      console.log('Push notification sent:', response);
+      console.log('✅ Push notification sent:', response);
     })
     .catch((error) => {
-      console.error('Error sending push notification:', error);
+      console.error('❌ Error sending push notification:', error);
     });
 }
 
@@ -262,9 +346,21 @@ app.get("/bins", async (req, res) => {
     }
     
     if (db) {
-      // Get real data from bin1 (your hardware)
-      const snapshot = await db.ref("bins/bin1").once("value");
-      realBinData = snapshot.val() || {};
+      try {
+        // Get real data from bin1 (your hardware)
+        const snapshot = await db.ref("bins/bin1").once("value");
+        realBinData = snapshot.val() || {};
+        bins.bin1 = realBinData;
+        console.log(`✅ Retrieved bin1 data: ${realBinData.weightKg || 0}kg`);
+      } catch (error) {
+        console.log(`⚠️ Error fetching bin1 data: ${error.message}`);
+        // Use dummy data for bin1 if Firebase fails
+        realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
+        bins.bin1 = realBinData;
+      }
+    } else {
+      console.log("⚠️ No Firebase DB connection, using dummy bin1 data");
+      realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
       bins.bin1 = realBinData;
     }
     
@@ -310,6 +406,16 @@ app.get("/bins", async (req, res) => {
         };
       });
     }
+
+    // Always include dummy bins for demonstration
+    Object.keys(dummyBins).forEach(binId => {
+      if (!bins[binId]) {
+        bins[binId] = {
+          ...dummyBins[binId],
+          lastFetched: new Date().toISOString()
+        };
+      }
+    });
 
     // Add last updated timestamp to each bin
     Object.keys(bins).forEach(id => {
@@ -361,6 +467,10 @@ app.get("/bins", async (req, res) => {
 
     // Check weather and send alerts
     await checkWeatherAndSendAlerts();
+
+    // Cache data for chatbot access
+    cachedBins = bins;
+    cachedOperators = operators;
 
     console.log(`✅ Returning ${Object.keys(bins).length} bins`);
     res.json(bins);
@@ -667,6 +777,128 @@ app.delete("/operators/:id", async (req, res) => {
   }
 });
 
+// ================= Operator Progress APIs =================
+
+app.get("/operators/:id/progress", (req, res) => {
+  try {
+    const { progress, tasks } = ensureOperatorState(req.params.id);
+    res.json({
+      completedBins: [...progress.completedBins],
+      tasks: tasks.map(task => ({ ...task }))
+    });
+  } catch (error) {
+    console.error("Error fetching operator progress:", error);
+    res.status(500).json({ error: "Failed to fetch operator progress" });
+  }
+});
+
+app.post("/operators/:id/tasks/:taskId", (req, res) => {
+  const operatorId = req.params.id;
+  const { taskId } = req.params;
+  const { completed } = req.body || {};
+
+  try {
+    const updatedTasks = updateTaskCompletion(operatorId, taskId, completed);
+    res.json({
+      tasks: updatedTasks.map(task => ({ ...task }))
+    });
+  } catch (error) {
+    console.error("Error updating operator task:", error);
+    res.status(500).json({ error: "Failed to update task status" });
+  }
+});
+
+app.post("/operators/:operatorId/bins/:binId/clear", async (req, res) => {
+  const { operatorId, binId } = req.params;
+  const { completed = true, note = "" } = req.body || {};
+  const timestamp = new Date().toISOString();
+
+  try {
+    ensureOperatorState(operatorId);
+    let updatedBinData = null;
+
+    if (completed) {
+      if (binId === "bin1" && db) {
+        const binSnapshot = await db.ref("bins/bin1").once("value");
+        const currentData = binSnapshot.val() || {};
+        const updates = {
+          fillPct: 0,
+          weightKg: 0,
+          status: "Normal",
+          lastClearedAt: timestamp,
+          lastClearedBy: operatorId
+        };
+        await db.ref("bins/bin1").update(updates);
+        updatedBinData = { ...currentData, ...updates };
+      } else if (firestore) {
+        const docRef = firestore.collection("bins").doc(binId);
+        const docSnapshot = await docRef.get();
+        if (!docSnapshot.exists) {
+          if (!dummyBins[binId]) {
+            return res.status(404).json({ error: "Bin not found" });
+          }
+        } else {
+          const updates = {
+            status: "Normal",
+            fillPct: 0,
+            weightKg: 0,
+            lastClearedAt: timestamp,
+            lastClearedBy: operatorId
+          };
+          if (note) {
+            updates.lastClearedNote = note;
+          }
+          updates.history = admin.firestore.FieldValue.arrayUnion({
+            type: "clear",
+            operatorId,
+            timestamp,
+            note
+          });
+          await docRef.set(updates, { merge: true });
+          const refreshed = await docRef.get();
+          updatedBinData = refreshed.data();
+        }
+      }
+
+      if (!updatedBinData) {
+        if (!dummyBins[binId]) {
+          return res.status(404).json({ error: "Bin not found" });
+        }
+        dummyBins[binId] = {
+          ...dummyBins[binId],
+          status: "Normal",
+          fillPct: 0,
+          weightKg: 0,
+          lastClearedAt: timestamp,
+          lastClearedBy: operatorId
+        };
+        if (!dummyBins[binId].history) {
+          dummyBins[binId].history = [];
+        }
+        dummyBins[binId].history.push({
+          ts: timestamp,
+          type: "clear",
+          operatorId,
+          note
+        });
+        updatedBinData = dummyBins[binId];
+      }
+    } else if (dummyBins[binId]) {
+      updatedBinData = dummyBins[binId];
+    }
+
+    const completedBins = toggleCompletedBin(operatorId, binId, completed, { note });
+    res.json({
+      completedBins,
+      bin: updatedBinData,
+      timestamp
+    });
+  } catch (error) {
+    console.error("Error updating bin clearance status:", error);
+    res.status(500).json({ error: "Failed to update bin clearance status" });
+  }
+});
+
 // ================= Bin Management =================
 
 // Create new bin
@@ -778,6 +1010,163 @@ app.delete("/bins/:id", async (req, res) => {
 });
 
 // ==========================================
+
+// Test alert endpoint
+app.post("/test-alert/:binId", async (req, res) => {
+  const binId = req.params.binId;
+  const { fillPct = 85, weightKg = 8.5 } = req.body;
+  
+  try {
+    // Find operator for this bin
+    const operator = operators.find(op => op.assignedBins?.includes(binId)) || operators[0];
+    
+    if (operator) {
+      // Send test alert
+      sendBinAlertEmail(operator, {
+        id: binId,
+        weightKg,
+        fillPct,
+        status: "NEEDS_EMPTYING",
+        location: "Test Location"
+      });
+      
+      res.json({ 
+        message: "Test alert sent!",
+        sentTo: operator.email,
+        binId,
+        fillPct,
+        weightKg
+      });
+    } else {
+      res.status(404).json({ error: "No operator found for this bin" });
+    }
+  } catch (error) {
+    console.error("Error sending test alert:", error);
+    res.status(500).json({ error: "Failed to send test alert" });
+  }
+});
+
+// ================= Chatbot Endpoints =================
+const chatbot = require('./chatbot/gemini');
+
+// POST /chatbot/message - Send message to chatbot
+app.post('/chatbot/message', async (req, res) => {
+  try {
+    const { userId, message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Use a default userId if not provided
+    const userIdentifier = userId || 'anonymous';
+
+    // Gather context for chatbot
+    const context = {
+      bins: cachedBins,
+      operators: cachedOperators,
+      weather: cachedWeather
+    };
+
+    // Get response from chatbot
+    const result = await chatbot.chat(userIdentifier, message, context);
+
+    res.json({
+      response: result.response,
+      timestamp: result.timestamp,
+      userId: userIdentifier
+    });
+
+  } catch (error) {
+    console.error('Chatbot endpoint error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process message',
+      response: "I'm having trouble right now. Please try again! 🤖"
+    });
+  }
+});
+
+// GET /chatbot/history/:userId - Get conversation history
+app.get('/chatbot/history/:userId', (req, res) => {
+  try {
+    const { userId } = req.params;
+    const history = chatbot.getHistory(userId);
+    
+    res.json({
+      userId,
+      history,
+      messageCount: history.length
+    });
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// DELETE /chatbot/history/:userId - Clear conversation history
+app.delete('/chatbot/history/:userId', (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = chatbot.clearHistory(userId);
+    
+    res.json({
+      userId,
+      message: 'Conversation history cleared',
+      ...result
+    });
+  } catch (error) {
+    console.error('Error clearing chat history:', error);
+    res.status(500).json({ error: 'Failed to clear history' });
+  }
+});
+
+// GET /chatbot/stats - Get chatbot statistics
+app.get('/chatbot/stats', (req, res) => {
+  try {
+    const stats = chatbot.getStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching chatbot stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// POST /chatbot/report - Report issue via chatbot
+app.post('/chatbot/report', async (req, res) => {
+  try {
+    const { userId, binId, issue, description } = req.body;
+
+    if (!binId || !issue) {
+      return res.status(400).json({ error: 'binId and issue are required' });
+    }
+
+    // Create support ticket (you can expand this)
+    const ticket = {
+      id: `TICKET-${Date.now()}`,
+      userId: userId || 'anonymous',
+      binId,
+      issue,
+      description: description || '',
+      status: 'open',
+      createdAt: new Date().toISOString()
+    };
+
+    // Send message to chatbot about the report
+    const message = `Report issue with ${binId}: ${issue}. ${description || ''}`;
+    const context = { bins: cachedBins };
+    const chatResponse = await chatbot.chat(userId || 'anonymous', message, context);
+
+    res.json({
+      ticket,
+      chatbotResponse: chatResponse.response,
+      message: 'Issue reported successfully'
+    });
+
+  } catch (error) {
+    console.error('Error reporting issue:', error);
+    res.status(500).json({ error: 'Failed to report issue' });
+  }
+});
 
 const PORT = 5000;
 app.listen(PORT, () =>

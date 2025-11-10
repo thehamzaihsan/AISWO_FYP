@@ -1,6 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const DEMO_USERS = {
+  'admin@gmail.com': {
+    password: '12345678',
+    role: 'admin',
+    name: 'System Admin',
+  },
+  'operator1@aiswo.com': {
+    password: '12345678',
+    role: 'operator',
+    name: 'John Smith',
+    operatorId: 'op1',
+    assignedBins: ['bin2'],
+  },
+  'operator2@aiswo.com': {
+    password: '12345678',
+    role: 'operator',
+    name: 'Sarah Johnson',
+    operatorId: 'op2',
+    assignedBins: ['bin3'],
+  },
+};
+
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,16 +39,47 @@ function Login({ onLogin }) {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Hardcoded credentials
-    if (email === 'admin@gmail.com' && password === '12345678') {
-      onLogin({ email, role: 'admin' });
-      // Redirect to intended page or admin dashboard
-      const from = location.state?.from?.pathname || '/admin';
-      navigate(from, { replace: true });
-    } else {
+    const normalizedEmail = email.trim().toLowerCase();
+    const demoUser = DEMO_USERS[normalizedEmail];
+
+    if (!demoUser || demoUser.password !== password) {
       setError('Invalid email or password. Please try again.');
+      setLoading(false);
+      return;
     }
-    
+
+    let enrichedUser = {
+      email: normalizedEmail,
+      name: demoUser.name,
+      role: demoUser.role,
+      operatorId: demoUser.operatorId,
+      assignedBins: demoUser.assignedBins || [],
+    };
+
+    if (demoUser.operatorId) {
+      try {
+        const operatorResponse = await fetch(
+          `http://localhost:5000/operators/${demoUser.operatorId}`
+        );
+        if (operatorResponse.ok) {
+          const operatorData = await operatorResponse.json();
+          enrichedUser = {
+            ...enrichedUser,
+            name: operatorData.name || demoUser.name,
+            assignedBins: operatorData.assignedBins || demoUser.assignedBins || [],
+            phone: operatorData.phone,
+          };
+        }
+      } catch (fetchError) {
+        console.warn('Unable to fetch operator profile, using defaults.', fetchError);
+      }
+    }
+
+    onLogin(enrichedUser);
+    const destination = enrichedUser.role === 'admin' ? '/admin' : '/my-bins';
+    const from = location.state?.from?.pathname || destination;
+    navigate(from, { replace: true });
+
     setLoading(false);
   };
 
@@ -64,7 +117,7 @@ function Login({ onLogin }) {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>
-          Admin Login
+          Sign in to AISWO
         </h1>
 
         <p style={{
@@ -72,7 +125,7 @@ function Login({ onLogin }) {
           margin: '0 0 var(--space-xl) 0',
           fontSize: 'var(--font-size-sm)'
         }}>
-          Enter your credentials to access the admin dashboard
+          Enter your credentials to access the smart bin management tools.
         </p>
 
         {/* Login Form */}
@@ -166,13 +219,28 @@ function Login({ onLogin }) {
           background: 'var(--light-gray)',
           borderRadius: 'var(--radius-md)',
           fontSize: 'var(--font-size-sm)',
-          color: 'var(--text-secondary)'
+          color: 'var(--text-secondary)',
+          display: 'grid',
+          gap: 'var(--space-sm)'
         }}>
-          <div style={{ fontWeight: '600', marginBottom: 'var(--space-sm)', color: 'var(--text-primary)' }}>
-            Demo Credentials:
+          <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+            Quick demo accounts
           </div>
-          <div>Email: admin@gmail.com</div>
-          <div>Password: 12345678</div>
+          {Object.entries(DEMO_USERS).map(([demoEmail, details]) => (
+            <button
+              key={demoEmail}
+              type="button"
+              className="btn btn-secondary"
+              style={{ justifyContent: 'space-between', fontSize: 'var(--font-size-sm)' }}
+              onClick={() => {
+                setEmail(demoEmail);
+                setPassword(details.password);
+              }}
+            >
+              <span>{details.role === 'admin' ? 'Admin' : 'Field Operator'} </span>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{demoEmail}</span>
+            </button>
+          ))}
         </div>
 
         {/* Back to Home */}
