@@ -1,4 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "./components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "./components/ui/card"
+import { Progress } from "./components/ui/progress"
+import { Input } from "./components/ui/input"
+import { Label } from "./components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
+import { CheckCircle2, AlertTriangle, AlertCircle, RefreshCw, CheckSquare, Square, MapPin, Thermometer, Scale } from "lucide-react"
 
 const MOTIVATION_MESSAGES = [
   "Great work! Every empty bin keeps the city cleaner.",
@@ -20,9 +27,9 @@ const getDefaultTasks = () =>
   }));
 
 function getStatusDetails(fillPct = 0) {
-  if (fillPct > 80) return { label: "Critical", tone: "danger", emoji: "🚨" };
-  if (fillPct > 60) return { label: "Warning", tone: "warning", emoji: "⚠️" };
-  return { label: "Normal", tone: "normal", emoji: "✅" };
+  if (fillPct > 80) return { label: "Critical", color: "text-destructive", icon: AlertCircle };
+  if (fillPct > 60) return { label: "Warning", color: "text-yellow-600", icon: AlertTriangle };
+  return { label: "Normal", color: "text-green-600", icon: CheckCircle2 };
 }
 
 function EmployeeDashboard({ user }) {
@@ -396,305 +403,328 @@ function EmployeeDashboard({ user }) {
   const renderBinCard = ([id, bin]) => {
     const details = getStatusDetails(bin?.fillPct);
     const isCompleted = completedBins.includes(id);
+    const StatusIcon = details.icon;
 
     return (
-      <div key={id} className="card employee-bin-card">
-        <div className="card-header">
-          <div>
-            <h3>{(bin?.name || id).toUpperCase()}</h3>
-            <p className="card-subtitle">{bin?.location || "No location"}</p>
+      <Card key={id} className="hover:shadow-lg transition-shadow duration-200">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl font-bold text-primary">
+                {(bin?.name || id).toUpperCase()}
+              </CardTitle>
+              <CardDescription className="flex items-center mt-1">
+                <MapPin className="h-3 w-3 mr-1" /> {bin?.location || "No location"}
+              </CardDescription>
+            </div>
+            <div className={`flex items-center gap-1 text-sm font-medium ${details.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              {details.label}
+            </div>
           </div>
-          <span className={`status-badge status-${details.tone}`}>
-            {details.emoji} {details.label}
-          </span>
-        </div>
+        </CardHeader>
 
-        <div className="card-metrics">
-          <div>
-            <h4>{bin?.fillPct ?? 0}%</h4>
-            <p>Fill Level</p>
+        <CardContent className="pb-3 space-y-4">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-muted p-2 rounded-lg">
+              <div className="text-lg font-bold">{bin?.fillPct ?? 0}%</div>
+              <div className="text-xs text-muted-foreground">Fill Level</div>
+            </div>
+            <div className="bg-muted p-2 rounded-lg">
+              <div className="text-lg font-bold">{bin?.weightKg ?? 0}</div>
+              <div className="text-xs text-muted-foreground">kg Weight</div>
+            </div>
+            <div className="bg-muted p-2 rounded-lg">
+              <div className="text-lg font-bold">{bin?.temperature ?? "—"}</div>
+              <div className="text-xs text-muted-foreground">Temp</div>
+            </div>
           </div>
-          <div>
-            <h4>{bin?.weightKg ?? 0} kg</h4>
-            <p>Weight</p>
-          </div>
-          <div>
-            <h4>{bin?.temperature ?? "—"}</h4>
-            <p>Temp</p>
-          </div>
-        </div>
 
-        <div className="progress-container">
-          <div
-            className="progress-bar"
-            style={{
-              width: `${bin?.fillPct || 0}%`,
-              background:
-                bin?.fillPct > 80
-                  ? "var(--gradient-danger)"
-                  : bin?.fillPct > 60
-                  ? "var(--gradient-warning)"
-                  : "var(--gradient-primary)",
-            }}
-          />
-        </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Fill Progress</span>
+              <span>{bin?.fillPct || 0}%</span>
+            </div>
+            <Progress value={bin?.fillPct || 0} className="h-2" />
+          </div>
+        </CardContent>
 
-        <div className="card-actions">
-          <button
-            type="button"
-            className={`btn ${isCompleted ? "btn-secondary" : "btn-primary"}`}
+        <CardFooter className="flex gap-2 pt-3">
+          <Button 
+            className={`flex-1 ${isCompleted ? "bg-green-600 hover:bg-green-700" : ""}`}
+            variant={isCompleted ? "default" : "default"}
             onClick={() => handleBinCompletion(id)}
           >
-            {isCompleted ? "✅ Marked as cleared" : "✔️ Mark bin as cleared"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
+            {isCompleted ? (
+              <>
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Cleared
+              </>
+            ) : (
+              "Mark as Cleared"
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1"
             onClick={() => {
               setIssueForm((prev) => ({ ...prev, binId: id }));
               window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
             }}
           >
-            🛠️ Report an issue
-          </button>
-        </div>
-
-        <div className="card-footer">
-          <span>
-            Last synced:{" "}
-            {bin?.updatedAt
-              ? new Date(bin.updatedAt).toLocaleTimeString()
-              : "N/A"}
-          </span>
-        </div>
-      </div>
+            <AlertTriangle className="mr-2 h-4 w-4" /> Report
+          </Button>
+        </CardFooter>
+      </Card>
     );
   };
 
   // Main render -------------------------------------------------------------
   if (loading) {
     return (
-      <div className="container">
-        <div className="employee-loading">
-          <span className="spinning" role="presentation">
-            ♻️
-          </span>
-          <p>Loading your assigned bins...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading your assigned bins...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container employee-dashboard">
-      <div className="employee-main">
-        <header className="employee-header card">
-          <div>
-            <p className="welcome-label">Welcome back,</p>
-            <h1>{displayName}</h1>
-            <p className="subheadline">
-              Monitor and service your assigned bins. Stay on top of alerts and report issues
-              in a single place.
-            </p>
+    <div className="container mx-auto py-8 px-4 max-w-7xl grid gap-8 lg:grid-cols-[1fr_350px]">
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <p className="text-muted-foreground">Welcome back,</p>
+          <h1 className="text-4xl font-bold tracking-tight text-primary">{displayName}</h1>
+          <p className="text-muted-foreground">
+            Monitor and service your assigned bins. Stay on top of alerts and report issues in a single place.
+          </p>
+          
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="text-3xl font-bold text-primary">{assignedIds.length}</div>
+              <div className="text-sm text-muted-foreground">Assigned Bins</div>
+            </Card>
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="text-3xl font-bold text-destructive">{criticalCount}</div>
+              <div className="text-sm text-muted-foreground">Critical Alerts</div>
+            </Card>
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="text-3xl font-bold text-yellow-600">{warningCount}</div>
+              <div className="text-sm text-muted-foreground">Warnings</div>
+            </Card>
           </div>
-          <div className="header-stats">
-            <div>
-              <h3>{assignedIds.length}</h3>
-              <p>Assigned bins</p>
-            </div>
-            <div>
-              <h3>{criticalCount}</h3>
-              <p>Critical alerts</p>
-            </div>
-            <div>
-              <h3>{warningCount}</h3>
-              <p>Warning</p>
-            </div>
-          </div>
-        </header>
+        </div>
 
         {error && (
-          <div className="card employee-error">
-            <strong>⚠️ Connection issue:</strong> {error}
+          <div className="bg-destructive/10 text-destructive p-4 rounded-lg flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
           </div>
         )}
 
-        <section className="employee-actions">
-          <div className="card progress-card">
-            <header>
-              <h2>Daily progress</h2>
-              <button
-                type="button"
-                className={`btn btn-secondary ${refreshing ? "spinning" : ""}`}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-medium">Daily Progress</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
                 onClick={() => refreshBins(assignedIds, true)}
                 disabled={refreshing}
               >
-                🔄 Refresh data
-              </button>
-            </header>
-
-            <div className="progress-summary">
-            <div
-              className="progress-ring"
-              style={{ "--progress": completionRate / 100 }}
-            >
-                <span>{completionRate}%</span>
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div className="relative h-24 w-24 flex items-center justify-center">
+                  <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-muted"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="text-primary transition-all duration-500 ease-out"
+                      strokeDasharray={`${completionRate}, 100`}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                  </svg>
+                  <div className="absolute text-xl font-bold">{completionRate}%</div>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium">{motivation}</p>
+                  {lastUpdated && (
+                    <p className="text-xs text-muted-foreground">
+                      Last sync: {new Date(lastUpdated).toLocaleTimeString()}
+                    </p>
+                  )}
+                  {progressMessage && (
+                    <p className={`text-sm ${progressMessage.type === "error" ? "text-destructive" : "text-green-600"}`}>
+                      {progressMessage.text}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="progress-copy">
-                <p>{motivation}</p>
-                {lastUpdated && (
-                  <small>
-                    Last sync: {new Date(lastUpdated).toLocaleTimeString()}
-                  </small>
-                )}
-                {progressMessage && (
-                  <span
-                    className={`issue-feedback ${
-                      progressMessage.type === "error" ? "error" : "success"
-                    }`}
-                    style={{ display: "inline-block", marginTop: "var(--space-sm)" }}
-                  >
-                    {progressMessage.text}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="card task-card">
-            <h2>Shift checklist</h2>
-            {tasksError && (
-              <p className="issue-feedback error">{tasksError}</p>
-            )}
-            {tasksLoading ? (
-              <p style={{ color: "var(--text-secondary)", margin: 0 }}>
-                Loading checklist...
-              </p>
-            ) : (
-              <ul>
-                {tasks.map((task) => (
-                  <li key={task.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(task.completed)}
-                        onChange={() => handleTaskToggle(task.id)}
-                      />
-                      <span>{task.label}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+          <Card>
+            <CardHeader>
+              <CardTitle>Shift Checklist</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tasksError && (
+                <p className="text-destructive text-sm mb-4">{tasksError}</p>
+              )}
+              {tasksLoading ? (
+                <p className="text-muted-foreground text-sm">Loading checklist...</p>
+              ) : (
+                <div className="space-y-4">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleTaskToggle(task.id)}
+                        className="text-primary focus:outline-none"
+                      >
+                        {task.completed ? (
+                          <CheckSquare className="h-5 w-5" />
+                        ) : (
+                          <Square className="h-5 w-5" />
+                        )}
+                      </button>
+                      <span className={task.completed ? "line-through text-muted-foreground" : ""}>
+                        {task.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-        <section className="employee-bins-grid">
+        <div className="grid gap-6 md:grid-cols-2">
           {assignedEntries.length ? (
             assignedEntries.map(renderBinCard)
           ) : (
-            <div className="card empty-state">
-              <h2>No bins assigned yet</h2>
-              <p>
-                Once the admin assigns bins to your profile, they will appear here with live
-                updates.
+            <Card className="col-span-full p-8 text-center">
+              <h3 className="text-lg font-semibold">No bins assigned yet</h3>
+              <p className="text-muted-foreground mt-2">
+                Once the admin assigns bins to your profile, they will appear here with live updates.
               </p>
-            </div>
+            </Card>
           )}
-        </section>
+        </div>
       </div>
 
-      <aside className="employee-sidebar">
-        <div className="card issue-card">
-          <h2>Report an issue</h2>
-          <p className="subheadline">
-            Notify the admin about damaged bins, blocked access, or urgent cleanup needs.
-          </p>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Report an Issue</CardTitle>
+            <CardDescription>
+              Notify the admin about damaged bins, blocked access, or urgent cleanup needs.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleIssueSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="issueBin">Bin</Label>
+                <Select
+                  value={issueForm.binId}
+                  onValueChange={(value) =>
+                    setIssueForm((prev) => ({ ...prev, binId: value }))
+                  }
+                >
+                  <SelectTrigger id="issueBin">
+                    <SelectValue placeholder="Select a bin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignedIds.map((id) => (
+                      <SelectItem key={id} value={id}>
+                        {id.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <form onSubmit={handleIssueSubmit} className="issue-form">
-            <label>
-              Bin
-              <select
-                value={issueForm.binId}
-                onChange={(event) =>
-                  setIssueForm((prev) => ({
-                    ...prev,
-                    binId: event.target.value,
-                  }))
-                }
-                required
+              <div className="space-y-2">
+                <Label htmlFor="issueType">Issue Type</Label>
+                <Input
+                  id="issueType"
+                  value={issueForm.issue}
+                  placeholder="Example: Lid damaged"
+                  onChange={(e) =>
+                    setIssueForm((prev) => ({ ...prev, issue: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Additional Details</Label>
+                <textarea
+                  id="description"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={issueForm.description}
+                  placeholder="Add any helpful context..."
+                  rows={4}
+                  onChange={(e) =>
+                    setIssueForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={issueStatus?.state === "loading"}
               >
-                <option value="" disabled>
-                  Select a bin
-                </option>
-                {assignedIds.map((id) => (
-                  <option key={id} value={id}>
-                    {id.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {issueStatus?.state === "loading" ? "Sending..." : "Submit Report"}
+              </Button>
 
-            <label>
-              Issue type
-              <input
-                type="text"
-                value={issueForm.issue}
-                placeholder="Example: Lid damaged"
-                onChange={(event) =>
-                  setIssueForm((prev) => ({
-                    ...prev,
-                    issue: event.target.value,
-                  }))
-                }
-                required
-              />
-            </label>
+              {issueStatus?.state === "success" && (
+                <p className="text-green-600 text-sm">{issueStatus.message}</p>
+              )}
+              {issueStatus?.state === "error" && (
+                <p className="text-destructive text-sm">{issueStatus.message}</p>
+              )}
+            </form>
+          </CardContent>
+        </Card>
 
-            <label>
-              Additional details
-              <textarea
-                value={issueForm.description}
-                placeholder="Add any helpful context..."
-                rows={4}
-                onChange={(event) =>
-                  setIssueForm((prev) => ({
-                    ...prev,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={issueStatus?.state === "loading"}
-            >
-              {issueStatus?.state === "loading" ? "Sending..." : "Submit report"}
-            </button>
-          </form>
-
-          {issueStatus?.state === "success" && (
-            <p className="issue-feedback success">{issueStatus.message}</p>
-          )}
-          {issueStatus?.state === "error" && (
-            <p className="issue-feedback error">{issueStatus.message}</p>
-          )}
-        </div>
-
-        <div className="card tips-card">
-          <h2>Engagement hub</h2>
-          <ul>
-            <li>🌦️ Check the weather tab for rain alerts before leaving.</li>
-            <li>📸 Capture photos of damaged bins and attach them to reports.</li>
-            <li>🔔 Enable push notifications to receive real-time alerts.</li>
-          </ul>
-        </div>
-      </aside>
+        <Card>
+          <CardHeader>
+            <CardTitle>Engagement Hub</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-xl">🌦️</span>
+                <span>Check the weather tab for rain alerts before leaving.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-xl">📸</span>
+                <span>Capture photos of damaged bins and attach them to reports.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-xl">🔔</span>
+                <span>Enable push notifications to receive real-time alerts.</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
 export default EmployeeDashboard;
-

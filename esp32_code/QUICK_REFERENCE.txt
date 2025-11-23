@@ -1,0 +1,86 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  🚀 AISWO SYSTEM - QUICK REFERENCE CARD                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+📍 CURRENT STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Backend:   http://localhost:5000  (Running)
+✅ Frontend:  http://localhost:3000  (Running)
+✅ Firebase:  aiswo-simple-697dd     (Connected)
+✅ Libraries: Firebase ESP32 v4.4.17 (Installed)
+⚠️ ESP32:     Code ready, needs Arduino IDE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 TO CONNECT ESP32
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Install Arduino IDE:
+   https://www.arduino.cc/en/software
+
+2. Add ESP32 support:
+   File → Preferences → Additional URLs:
+   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+3. Open code:
+   ~/Desktop/AISWO_FYP/esp32_code/smart_bin_esp32.ino
+
+4. Update WiFi:
+   #define WIFI_SSID "YourWiFiName"
+   #define WIFI_PASSWORD "YourPassword"
+
+5. Upload to ESP32!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Main Project:
+  ~/Desktop/AISWO_FYP/README.md
+
+ESP32 Setup:
+  ~/Desktop/AISWO_FYP/esp32_code/INSTALLATION_COMPLETE.md
+  ~/Desktop/AISWO_FYP/esp32_code/QUICK_START.md
+  ~/Desktop/AISWO_FYP/esp32_code/README.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ⚠️ Fix Firebase Rules (Important!)
+   → Realtime Database: Set read/write to true
+   → Firestore: Set read/write to true
+   
+2. 📱 Install Arduino IDE (One-time)
+   
+3. 🔌 Connect ESP32 and Upload Code
+   
+4. ✅ View Real-time Data on Dashboard!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TESTING WITHOUT HARDWARE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You can test the system without sensors!
+Just uncomment the simulated data lines in smart_bin_esp32.ino
+
+See QUICK_START.md for details.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆘 NEED HELP?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Check: ~/Desktop/AISWO_FYP/esp32_code/INSTALLATION_COMPLETE.md
+It has detailed troubleshooting and step-by-step guide!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ Everything is installed and ready!
+   Just download Arduino IDE and you're set! 🎉
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

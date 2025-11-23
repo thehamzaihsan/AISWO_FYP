@@ -1,0 +1,190 @@
+╔══════════════════════════════════════════════════════════════╗
+║  ✅ ARDUINO IDE IS NOW RUNNING!                              ║
+║  Follow these steps to set up ESP32 support                  ║
+╚══════════════════════════════════════════════════════════════╝
+
+📋 STEP-BY-STEP SETUP IN ARDUINO IDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Add ESP32 Board Support
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. In Arduino IDE, click: File → Preferences
+   (or press Ctrl+Comma)
+
+2. Find "Additional Boards Manager URLs"
+
+3. Copy and paste this URL:
+   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+4. Click "OK"
+
+5. Go to: Tools → Board → Boards Manager
+   (or click the board icon on the left sidebar)
+
+6. In the search box, type: ESP32
+
+7. Find "esp32 by Espressif Systems"
+
+8. Click "INSTALL" (this may take a few minutes)
+
+9. Wait for installation to complete
+
+
+STEP 2: Install Firebase Library
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: Sketch → Include Library → Manage Libraries
+   (or click the library icon on the left sidebar)
+
+2. In the search box, type: Firebase ESP32 Client
+
+3. Find "Firebase ESP32 Client by Mobizt"
+
+4. Click "INSTALL"
+
+5. Wait for installation to complete
+
+
+STEP 3: Open Your ESP32 Code
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Click: File → Open
+
+2. Navigate to:
+   /home/hamzaihsan/Desktop/AISWO_FYP/esp32_code/
+
+3. Select: smart_bin_esp32.ino
+
+4. Click "Open"
+
+
+STEP 4: Configure WiFi Credentials
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the opened code, find these lines (around line 11-12):
+
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+Change them to your actual WiFi name and password:
+
+#define WIFI_SSID "YourWiFiName"
+#define WIFI_PASSWORD "YourActualPassword"
+
+For Firebase Auth, you can leave it empty for testing:
+
+#define FIREBASE_AUTH ""
+
+
+STEP 5: Connect ESP32 and Upload
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Connect your ESP32 to computer via USB cable
+
+2. Select Board:
+   Tools → Board → esp32 → ESP32 Dev Module
+
+3. Select Port:
+   Tools → Port → /dev/ttyUSB0 (or /dev/ttyACM0)
+   (Choose the one that appears when ESP32 is connected)
+
+4. Click the Upload button (→ arrow icon at the top)
+
+5. Wait for compilation and upload to complete
+
+
+STEP 6: Open Serial Monitor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Click: Tools → Serial Monitor
+   (or click the magnifying glass icon at top-right)
+
+2. Set baud rate to: 115200
+   (dropdown at bottom of Serial Monitor window)
+
+3. You should see output like:
+   ✅ WiFi Connected!
+   ✅ Firebase initialized
+   ✅ Data sent to Firebase
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 TESTING WITHOUT HARDWARE (Optional)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you don't have sensors connected yet, you can test with
+simulated data:
+
+1. Find this line (around line 119):
+   return weight;
+
+2. Comment it out and add this below it:
+   // return weight;
+   return random(0, BIN_CAPACITY_KG * 100) / 100.0;
+
+3. Find this line (around line 143):
+   return percentage;
+
+4. Comment it out and add this below it:
+   // return percentage;
+   return random(0, 100);
+
+5. Upload again and it will send random test data!
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: ESP32 not detected / No port available
+Solution:
+  - Install CH340 driver for ESP32
+  - Try different USB cable
+  - Press BOOT button on ESP32 while uploading
+  - Run: sudo usermod -a -G dialout $USER
+  - Logout and login again
+
+Problem: Compilation error
+Solution:
+  - Make sure ESP32 board is installed
+  - Make sure Firebase library is installed
+  - Restart Arduino IDE
+
+Problem: Upload failed
+Solution:
+  - Hold BOOT button on ESP32
+  - Click upload
+  - Release BOOT button when "Connecting..." appears
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After successful upload, verify:
+
+1. Serial Monitor shows:
+   ✅ WiFi Connected!
+   ✅ Data sent to Firebase
+
+2. Firebase Console shows data:
+   Go to: https://console.firebase.google.com/
+   Project: aiswo-simple-697dd
+   Realtime Database → bins → bin1
+
+3. Dashboard shows real-time data:
+   Open: http://localhost:3000
+   Go to "Bin Dashboard"
+   See bin1 with ESP32 data!
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 That's it! Your ESP32 is now connected to AISWO!
+   Check your web dashboard for real-time bin data!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

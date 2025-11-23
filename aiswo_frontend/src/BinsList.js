@@ -1,13 +1,17 @@
-// 📌 React imports
+// React imports
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Trash2, AlertTriangle, CheckCircle, RefreshCw, ArrowRight, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Button } from "./components/ui/button";
+import { Badge } from "./components/ui/badge";
 
 function BinsList() {
   const [bins, setBins] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 📌 Backend se bins fetch karo
+  // Fetch bins from backend
   const fetchBins = async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
     
@@ -35,9 +39,21 @@ function BinsList() {
   }, []);
 
   const getStatusInfo = (fillPct) => {
-    if (fillPct > 80) return { status: "Full", class: "status-danger", icon: "⚠️" };
-    if (fillPct > 60) return { status: "Warning", class: "status-warning", icon: "⚡" };
-    return { status: "Normal", class: "status-normal", icon: "✅" };
+    if (fillPct > 80) return { 
+      status: "Full", 
+      variant: "destructive", 
+      icon: <AlertTriangle className="w-4 h-4" /> 
+    };
+    if (fillPct > 60) return { 
+      status: "Warning", 
+      variant: "warning", 
+      icon: <TrendingUp className="w-4 h-4" /> 
+    };
+    return { 
+      status: "Normal", 
+      variant: "success", 
+      icon: <CheckCircle className="w-4 h-4" /> 
+    };
   };
 
   const formatDate = (dateString) => {
@@ -49,188 +65,151 @@ function BinsList() {
     return (
       <div className="container" style={{ paddingTop: "var(--space-2xl)" }}>
         <div style={{ textAlign: "center" }}>
-          <div className="loading" style={{ fontSize: "var(--font-size-2xl)", marginBottom: "var(--space-lg)" }}>
-            Loading Smart Bins...
-          </div>
+          <RefreshCw className="animate-spin mx-auto mb-4" size={48} />
+          <div className="text-xl">Loading Smart Bins...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-2xl)" }}>
+    <div className="container mx-auto px-4 py-8">
       {/* Header Section */}
-      <div style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "var(--space-lg)", marginBottom: "var(--space-md)" }}>
-          <h1 style={{ 
-            fontSize: "var(--font-size-4xl)", 
-            fontWeight: "700", 
-            margin: "0",
-            background: "var(--gradient-primary)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text"
-          }}>
+      <div className="text-center mb-8">
+        <div className="flex justify-center items-center gap-4 mb-4">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
             Smart Bin Monitoring
           </h1>
-          <button
+          <Button
             onClick={() => fetchBins(true)}
             disabled={refreshing}
-            className={`btn btn-secondary ${refreshing ? 'spinning' : ''}`}
-            style={{
-              padding: "var(--space-sm)",
-              borderRadius: "50%",
-              width: "48px",
-              height: "48px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "var(--font-size-lg)"
-            }}
-            title="Refresh data"
+            variant="outline"
+            size="icon"
+            className="rounded-full"
           >
-            ↻
-          </button>
+            <RefreshCw className={refreshing ? "animate-spin" : ""} size={20} />
+          </Button>
         </div>
-        <p style={{ 
-          fontSize: "var(--font-size-lg)", 
-          color: "var(--text-secondary)",
-          margin: "0 auto",
-          maxWidth: "600px"
-        }}>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Real-time monitoring of waste collection bins with intelligent alerts and analytics
         </p>
         {refreshing && (
-          <div style={{ 
-            marginTop: "var(--space-md)",
-            color: "var(--primary-green)",
-            fontSize: "var(--font-size-sm)",
-            fontWeight: "500"
-          }}>
+          <div className="mt-4 text-green-600 text-sm font-medium">
             Updating data...
           </div>
         )}
       </div>
 
       {/* Stats Overview */}
-      <div className="fade-in-up" style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
-        gap: "var(--space-lg)",
-        marginBottom: "var(--space-2xl)"
-      }}>
-        <div className="card" style={{ padding: "var(--space-lg)", textAlign: "center" }}>
-          <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "700", color: "var(--primary-green)", marginBottom: "var(--space-sm)" }}>
-            {Object.keys(bins).length}
-          </div>
-          <div style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Total Bins</div>
-        </div>
-        <div className="card" style={{ padding: "var(--space-lg)", textAlign: "center" }}>
-          <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "700", color: "var(--warning-orange)", marginBottom: "var(--space-sm)" }}>
-            {Object.values(bins).filter(bin => bin.fillPct > 60 && bin.fillPct <= 80).length}
-          </div>
-          <div style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Warning</div>
-        </div>
-        <div className="card" style={{ padding: "var(--space-lg)", textAlign: "center" }}>
-          <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "700", color: "var(--warning-red)", marginBottom: "var(--space-sm)" }}>
-            {Object.values(bins).filter(bin => bin.fillPct > 80).length}
-          </div>
-          <div style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Full</div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bins</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">
+              {Object.keys(bins).length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Warning</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-600">
+              {Object.values(bins).filter(bin => bin.fillPct > 60 && bin.fillPct <= 80).length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Needs Emptying</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">
+              {Object.values(bins).filter(bin => bin.fillPct > 80).length}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bins Grid */}
-      <div className="slide-in-right" style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", 
-        gap: "var(--space-lg)"
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.entries(bins).map(([id, bin]) => {
           const statusInfo = getStatusInfo(bin.fillPct || 0);
-  return (
-            <div key={id} className="card" style={{ padding: "var(--space-lg)", position: "relative" }}>
-              {/* Bin Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-lg)" }}>
-                <h3 style={{ 
-                  margin: "0", 
-                  fontSize: "var(--font-size-xl)", 
-                  fontWeight: "600",
-                  color: "var(--text-primary)"
-                }}>
-                  {id.toUpperCase()}
-                </h3>
-                <span className={`status-indicator ${statusInfo.class}`}>
-                  {statusInfo.icon} {statusInfo.status}
-                </span>
-              </div>
+          return (
+            <Card key={id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="w-5 h-5 text-muted-foreground" />
+                    <CardTitle className="text-xl">{id.toUpperCase()}</CardTitle>
+                  </div>
+                  <Badge variant={statusInfo.variant} className="flex items-center gap-1">
+                    {statusInfo.icon}
+                    {statusInfo.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* Bin Metrics */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Weight</span>
+                    <span className="font-semibold">{bin?.weightKg || 0} kg</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Fill Level</span>
+                    <span className="font-semibold">{Math.round(bin?.fillPct || 0)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last Updated</span>
+                    <span className="font-semibold text-xs">{formatDate(bin?.updatedAt)}</span>
+                  </div>
+                </div>
 
-              {/* Bin Metrics */}
-              <div style={{ marginBottom: "var(--space-lg)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Weight</span>
-                  <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>
-                    {bin?.weightKg || 0} kg
-                  </span>
+                {/* Progress Bar */}
+                <div className="space-y-2 mb-4">
+                  <div className="w-full bg-secondary rounded-full h-2.5">
+                    <div 
+                      className={`h-2.5 rounded-full transition-all ${
+                        bin?.fillPct > 80 ? 'bg-red-600' : 
+                        bin?.fillPct > 60 ? 'bg-yellow-600' : 
+                        'bg-green-600'
+                      }`}
+                      style={{ width: `${Math.min(bin?.fillPct || 0, 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Fill Level</span>
-                  <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>
-                    {bin?.fillPct || 0}%
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-md)" }}>
-                  <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Last Updated</span>
-                  <span style={{ fontWeight: "600", color: "var(--text-primary)", fontSize: "var(--font-size-sm)" }}>
-                    {formatDate(bin?.updatedAt)}
-                  </span>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div style={{ marginBottom: "var(--space-lg)" }}>
-                <div className="progress-container">
-                  <div 
-                    className="progress-bar"
-                    style={{
-                      width: `${bin?.fillPct || 0}%`,
-                      background: bin?.fillPct > 80 
-                        ? "var(--gradient-danger)" 
-                        : bin?.fillPct > 60 
-                        ? "var(--gradient-warning)" 
-                        : "var(--gradient-primary)"
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <Link 
-                to={`/bin/${id}`} 
-                className="btn btn-primary"
-            style={{
-                  width: "100%", 
-                  textDecoration: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "var(--space-sm)"
-                }}
-              >
-                View Details
-                <span style={{ fontSize: "var(--font-size-sm)" }}>→</span>
-            </Link>
-          </div>
+                {/* Action Button */}
+                <Link to={`/bin/${id}`}>
+                  <Button className="w-full" variant="default">
+                    View Details
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
 
       {/* Empty State */}
       {Object.keys(bins).length === 0 && (
-        <div style={{ textAlign: "center", padding: "var(--space-2xl)" }}>
-          <div style={{ fontSize: "var(--font-size-4xl)", marginBottom: "var(--space-lg)" }}>📊</div>
-          <h3 style={{ color: "var(--text-secondary)", marginBottom: "var(--space-sm)" }}>No bins available</h3>
-          <p style={{ color: "var(--text-secondary)" }}>Check your connection or try again later.</p>
-      </div>
+        <Card className="text-center p-12">
+          <div className="flex flex-col items-center gap-4">
+            <Trash2 size={64} className="text-muted-foreground" />
+            <div>
+              <h3 className="text-xl font-semibold mb-2">No bins available</h3>
+              <p className="text-muted-foreground">Check your connection or try again later.</p>
+            </div>
+          </div>
+        </Card>
       )}
     </div>
   );

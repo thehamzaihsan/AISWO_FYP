@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './components/ui/card';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
+import { Button } from './components/ui/button';
+import { Alert, AlertDescription } from './components/ui/alert';
+import { Loader2, AlertTriangle, Recycle } from 'lucide-react';
 
 const DEMO_USERS = {
   'admin@gmail.com': {
@@ -36,7 +42,6 @@ function Login({ onLogin }) {
     setLoading(true);
     setError('');
 
-    // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -84,175 +89,96 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #34C759 0%, #52D765 50%, #D4F4DD 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--space-lg)'
-    }}>
-      <div className="card" style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: 'var(--space-2xl)',
-        textAlign: 'center'
-      }}>
-        {/* Logo */}
-        <div style={{
-          fontSize: 'var(--font-size-4xl)',
-          marginBottom: 'var(--space-lg)',
-          animation: 'bounce 2s ease-in-out infinite'
-        }}>
-          ♻️
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <Recycle className="mx-auto h-12 w-12 text-green-600" />
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Or{' '}
+            <Link to="/" className="font-medium text-primary hover:underline">
+              return to the homepage
+            </Link>
+          </p>
         </div>
-
-        {/* Title */}
-        <h1 style={{
-          fontSize: 'var(--font-size-2xl)',
-          fontWeight: '700',
-          margin: '0 0 var(--space-md) 0',
-          background: 'var(--gradient-primary)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
-          Sign in to AISWO
-        </h1>
-
-        <p style={{
-          color: 'var(--text-secondary)',
-          margin: '0 0 var(--space-xl) 0',
-          fontSize: 'var(--font-size-sm)'
-        }}>
-          Enter your credentials to access the smart bin management tools.
-        </p>
-
-        {/* Login Form */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 'var(--space-lg)' }}>
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: 'var(--space-md)',
-                border: '2px solid var(--light-gray)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--font-size-base)',
-                transition: 'border-color var(--transition-fast)',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-green)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--light-gray)'}
-            />
-          </div>
-
-          <div style={{ marginBottom: 'var(--space-lg)' }}>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: 'var(--space-md)',
-                border: '2px solid var(--light-gray)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--font-size-base)',
-                transition: 'border-color var(--transition-fast)',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary-green)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--light-gray)'}
-            />
-          </div>
-
-          {error && (
-            <div style={{
-              color: 'var(--warning-red)',
-              fontSize: 'var(--font-size-sm)',
-              marginBottom: 'var(--space-lg)',
-              padding: 'var(--space-sm)',
-              background: 'rgba(255, 59, 48, 0.1)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(255, 59, 48, 0.2)'
-            }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary"
-            style={{
-              width: '100%',
-              padding: 'var(--space-md)',
-              fontSize: 'var(--font-size-base)',
-              fontWeight: '600',
-              opacity: loading ? 0.7 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-sm)' }}>
-                <span className="spinning" style={{ fontSize: 'var(--font-size-sm)' }}>⏳</span>
-                Signing in...
-              </span>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
-
-        {/* Demo Credentials */}
-        <div style={{
-          marginTop: 'var(--space-xl)',
-          padding: 'var(--space-md)',
-          background: 'var(--light-gray)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: 'var(--font-size-sm)',
-          color: 'var(--text-secondary)',
-          display: 'grid',
-          gap: 'var(--space-sm)'
-        }}>
-          <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-            Quick demo accounts
-          </div>
-          {Object.entries(DEMO_USERS).map(([demoEmail, details]) => (
-            <button
-              key={demoEmail}
-              type="button"
-              className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', fontSize: 'var(--font-size-sm)' }}
-              onClick={() => {
-                setEmail(demoEmail);
-                setPassword(details.password);
-              }}
-            >
-              <span>{details.role === 'admin' ? 'Admin' : 'Field Operator'} </span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{demoEmail}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Back to Home */}
-        <div style={{ marginTop: 'var(--space-lg)' }}>
-          <button
-            onClick={() => navigate('/')}
-            className="btn btn-secondary"
-            style={{ fontSize: 'var(--font-size-sm)' }}
-          >
-            ← Back to Home
-          </button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Enter your credentials to access the dashboard.</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    to="#"
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Demo Accounts</CardTitle>
+            <CardDescription>Click to populate credentials.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {Object.entries(DEMO_USERS).map(([demoEmail, details]) => (
+              <Button
+                key={demoEmail}
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => {
+                  setEmail(demoEmail);
+                  setPassword(details.password);
+                }}
+              >
+                <span>{details.role === 'admin' ? 'Admin' : 'Field Operator'}</span>
+                <span className="text-muted-foreground">{demoEmail}</span>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

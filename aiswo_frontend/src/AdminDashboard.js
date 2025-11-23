@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Button } from "./components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "./components/ui/card"
+import { Input } from "./components/ui/input"
+import { Label } from "./components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
+import { Trash2, Edit, Plus, MapPin, Database, User } from "lucide-react"
 
 function AdminDashboard() {
   const [bins, setBins] = useState({});
   const [operators, setOperators] = useState({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('bins');
   const [showBinForm, setShowBinForm] = useState(false);
   const [showOperatorForm, setShowOperatorForm] = useState(false);
   const [editingBin, setEditingBin] = useState(null);
@@ -133,506 +140,275 @@ function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="container" style={{ paddingTop: "var(--space-2xl)", textAlign: "center" }}>
-        <div className="loading" style={{ fontSize: "var(--font-size-2xl)", marginBottom: "var(--space-lg)" }}>
-          Loading admin dashboard...
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl font-semibold animate-pulse">Loading admin dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ paddingTop: "var(--space-2xl)", paddingBottom: "var(--space-2xl)" }}>
-      {/* Header */}
-      <div className="fade-in-up" style={{ textAlign: "center", marginBottom: "var(--space-2xl)" }}>
-        <h1 style={{ 
-          fontSize: "var(--font-size-4xl)", 
-          fontWeight: "700", 
-          margin: "0 0 var(--space-md) 0",
-          background: "var(--gradient-primary)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text"
-        }}>
+    <div className="container mx-auto py-10 px-4 max-w-7xl">
+      <div className="text-center mb-10 space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight text-primary">
           Admin Dashboard
         </h1>
-        <p style={{ 
-          fontSize: "var(--font-size-lg)", 
-          color: "var(--text-secondary)",
-          margin: "0"
-        }}>
+        <p className="text-muted-foreground text-lg">
           Manage bins, operators, and system settings
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ 
-        display: "flex", 
-        gap: "var(--space-sm)", 
-        marginBottom: "var(--space-lg)",
-        borderBottom: "2px solid var(--light-gray)"
-      }}>
-        <button
-          onClick={() => setActiveTab('bins')}
-          className={`btn ${activeTab === 'bins' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ 
-            border: "none",
-            borderRadius: "var(--radius-md) var(--radius-md) 0 0",
-            marginBottom: "-2px"
-          }}
-        >
-          Bins Management
-        </button>
-        <button
-          onClick={() => setActiveTab('operators')}
-          className={`btn ${activeTab === 'operators' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ 
-            border: "none",
-            borderRadius: "var(--radius-md) var(--radius-md) 0 0",
-            marginBottom: "-2px"
-          }}
-        >
-          Operators Management
-        </button>
-      </div>
+      <Tabs defaultValue="bins" className="w-full">
+        <div className="flex justify-center mb-8">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="bins">Bins Management</TabsTrigger>
+            <TabsTrigger value="operators">Operators Management</TabsTrigger>
+          </TabsList>
+        </div>
 
-      {/* Bins Tab */}
-      {activeTab === 'bins' && (
-        <div>
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
-            marginBottom: "var(--space-lg)" 
-          }}>
-            <h2 style={{ margin: "0", fontSize: "var(--font-size-xl)", color: "var(--text-primary)" }}>
+        <TabsContent value="bins" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold tracking-tight">
               Smart Bins ({Object.keys(bins).length})
             </h2>
-            <button
-              onClick={() => {
-                setEditingBin(null);
-                setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: '', status: 'Active' });
-                setShowBinForm(true);
-              }}
-              className="btn btn-primary"
-            >
-              + Add New Bin
-            </button>
+            <Button onClick={() => {
+              setEditingBin(null);
+              setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: '', status: 'Active' });
+              setShowBinForm(true);
+            }}>
+              <Plus className="mr-2 h-4 w-4" /> Add New Bin
+            </Button>
           </div>
 
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
-            gap: "var(--space-lg)" 
-          }}>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(bins).map(([binId, bin]) => (
-              <div key={binId} className="card" style={{ padding: "var(--space-lg)" }}>
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  marginBottom: "var(--space-md)" 
-                }}>
-                  <h3 style={{ margin: "0", fontSize: "var(--font-size-lg)", color: "var(--text-primary)" }}>
-                    {bin.name || binId.toUpperCase()}
-                  </h3>
-                  <span className={`status-indicator ${bin.fillPct > 80 ? 'status-danger' : bin.fillPct > 60 ? 'status-warning' : 'status-normal'}`}>
-                    {bin.fillPct || 0}%
-                  </span>
-                </div>
-
-                <div style={{ marginBottom: "var(--space-md)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Location:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>{bin.location || 'Not set'}</span>
+              <Card key={binId} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-xl font-bold text-primary">
+                      {bin.name || binId.toUpperCase()}
+                    </CardTitle>
+                    <div className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      bin.fillPct > 80 ? 'bg-destructive/10 text-destructive' : 
+                      bin.fillPct > 60 ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {bin.fillPct || 0}% Full
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Capacity:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>{bin.capacity || 'N/A'}</span>
+                  <CardDescription className="flex items-center mt-1">
+                    <MapPin className="h-3 w-3 mr-1" /> {bin.location || 'Not set'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground flex items-center">
+                        <Database className="h-3 w-3 mr-1" /> Capacity:
+                      </span>
+                      <span className="font-medium">{bin.capacity || 'N/A'} kg</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground flex items-center">
+                        <User className="h-3 w-3 mr-1" /> Operator:
+                      </span>
+                      <span className="font-medium">
+                        {bin.operatorId ? operators[bin.operatorId]?.name || bin.operatorId : 'Unassigned'}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Operator:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>
-                      {bin.operatorId ? operators[bin.operatorId]?.name || bin.operatorId : 'Unassigned'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-                  <button
-                    onClick={() => handleEditBin(binId)}
-                    className="btn btn-secondary"
-                    style={{ flex: 1, fontSize: "var(--font-size-sm)" }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBin(binId)}
-                    className="btn"
-                    style={{ 
-                      flex: 1, 
-                      fontSize: "var(--font-size-sm)",
-                      background: "var(--warning-red)",
-                      color: "var(--white)",
-                      border: "none"
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+                <CardFooter className="flex gap-2 pt-3">
+                  <Button variant="outline" className="flex-1" onClick={() => handleEditBin(binId)}>
+                    <Edit className="h-3 w-3 mr-2" /> Edit
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => handleDeleteBin(binId)}>
+                    <Trash2 className="h-3 w-3 mr-2" /> Delete
+                  </Button>
+                </CardFooter>
+              </Card>
             ))}
           </div>
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Operators Tab */}
-      {activeTab === 'operators' && (
-        <div>
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
-            marginBottom: "var(--space-lg)" 
-          }}>
-            <h2 style={{ margin: "0", fontSize: "var(--font-size-xl)", color: "var(--text-primary)" }}>
+        <TabsContent value="operators" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold tracking-tight">
               Operators ({Object.keys(operators).length})
             </h2>
-            <button
-              onClick={() => {
-                setEditingOperator(null);
-                setOperatorForm({ id: '', name: '', email: '', phone: '', assignedBins: [] });
-                setShowOperatorForm(true);
-              }}
-              className="btn btn-primary"
-            >
-              + Add New Operator
-            </button>
+            <Button onClick={() => {
+              setEditingOperator(null);
+              setOperatorForm({ id: '', name: '', email: '', phone: '', assignedBins: [] });
+              setShowOperatorForm(true);
+            }}>
+              <Plus className="mr-2 h-4 w-4" /> Add New Operator
+            </Button>
           </div>
 
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", 
-            gap: "var(--space-lg)" 
-          }}>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(operators).map(([operatorId, operator]) => (
-              <div key={operatorId} className="card" style={{ padding: "var(--space-lg)" }}>
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  marginBottom: "var(--space-md)" 
-                }}>
-                  <h3 style={{ margin: "0", fontSize: "var(--font-size-lg)", color: "var(--text-primary)" }}>
-                    {operator.name}
-                  </h3>
-                  <span className="status-indicator status-normal">
-                    Active
-                  </span>
-                </div>
-
-                <div style={{ marginBottom: "var(--space-md)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Email:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>{operator.email}</span>
+              <Card key={operatorId} className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-xl font-bold text-primary">
+                      {operator.name}
+                    </CardTitle>
+                    <div className="bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-xs font-medium">
+                      Active
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Phone:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>{operator.phone}</span>
+                  <CardDescription>{operator.email}</CardDescription>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phone:</span>
+                      <span className="font-medium">{operator.phone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Assigned Bins:</span>
+                      <span className="font-medium">{operator.assignedBins?.length || 0}</span>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-sm)" }}>Assigned Bins:</span>
-                    <span style={{ fontWeight: "500", fontSize: "var(--font-size-sm)" }}>
-                      {operator.assignedBins?.length || 0}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-                  <button
-                    onClick={() => handleEditOperator(operatorId)}
-                    className="btn btn-secondary"
-                    style={{ flex: 1, fontSize: "var(--font-size-sm)" }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteOperator(operatorId)}
-                    className="btn"
-                    style={{ 
-                      flex: 1, 
-                      fontSize: "var(--font-size-sm)",
-                      background: "var(--warning-red)",
-                      color: "var(--white)",
-                      border: "none"
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+                <CardFooter className="flex gap-2 pt-3">
+                  <Button variant="outline" className="flex-1" onClick={() => handleEditOperator(operatorId)}>
+                    <Edit className="h-3 w-3 mr-2" /> Edit
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => handleDeleteOperator(operatorId)}>
+                    <Trash2 className="h-3 w-3 mr-2" /> Delete
+                  </Button>
+                </CardFooter>
+              </Card>
             ))}
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
-      {/* Bin Form Modal */}
-      {showBinForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div className="card" style={{ 
-            width: '90%', 
-            maxWidth: '500px', 
-            padding: 'var(--space-lg)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{ margin: "0 0 var(--space-lg) 0", fontSize: "var(--font-size-xl)" }}>
-              {editingBin ? 'Edit Bin' : 'Add New Bin'}
-            </h3>
-            
-            <form onSubmit={handleBinSubmit}>
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Bin ID
-                </label>
-                <input
-                  type="text"
-                  value={binForm.id}
-                  onChange={(e) => setBinForm({...binForm, id: e.target.value})}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Name
-                </label>
-                <input
-                  type="text"
-                  value={binForm.name}
-                  onChange={(e) => setBinForm({...binForm, name: e.target.value})}
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={binForm.location}
-                  onChange={(e) => setBinForm({...binForm, location: e.target.value})}
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Capacity (kg)
-                </label>
-                <input
-                  type="number"
-                  value={binForm.capacity}
-                  onChange={(e) => setBinForm({...binForm, capacity: e.target.value})}
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-lg)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Operator
-                </label>
-                <select
-                  value={binForm.operatorId}
-                  onChange={(e) => setBinForm({...binForm, operatorId: e.target.value})}
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                >
-                  <option value="">Select Operator</option>
+      {/* Bin Form Dialog */}
+      <Dialog open={showBinForm} onOpenChange={setShowBinForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingBin ? 'Edit Bin' : 'Add New Bin'}</DialogTitle>
+            <DialogDescription>
+              {editingBin ? 'Update the details of the smart bin.' : 'Enter the details for the new smart bin.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBinSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="binId">Bin ID</Label>
+              <Input
+                id="binId"
+                value={binForm.id}
+                onChange={(e) => setBinForm({...binForm, id: e.target.value})}
+                required
+                disabled={!!editingBin}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={binForm.name}
+                onChange={(e) => setBinForm({...binForm, name: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={binForm.location}
+                onChange={(e) => setBinForm({...binForm, location: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="capacity">Capacity (kg)</Label>
+              <Input
+                id="capacity"
+                type="number"
+                value={binForm.capacity}
+                onChange={(e) => setBinForm({...binForm, capacity: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="operator">Operator</Label>
+              <Select 
+                value={binForm.operatorId} 
+                onValueChange={(value) => setBinForm({...binForm, operatorId: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {Object.entries(operators).map(([id, operator]) => (
-                    <option key={id} value={id}>{operator.name}</option>
+                    <SelectItem key={id} value={id}>{operator.name}</SelectItem>
                   ))}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowBinForm(false)}>Cancel</Button>
+              <Button type="submit">{editingBin ? 'Update' : 'Create'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {editingBin ? 'Update' : 'Create'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowBinForm(false)}
-                  className="btn btn-secondary" 
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Operator Form Modal */}
-      {showOperatorForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div className="card" style={{ 
-            width: '90%', 
-            maxWidth: '500px', 
-            padding: 'var(--space-lg)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <h3 style={{ margin: "0 0 var(--space-lg) 0", fontSize: "var(--font-size-xl)" }}>
-              {editingOperator ? 'Edit Operator' : 'Add New Operator'}
-            </h3>
-            
-            <form onSubmit={handleOperatorSubmit}>
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Operator ID
-                </label>
-                <input
-                  type="text"
-                  value={operatorForm.id}
-                  onChange={(e) => setOperatorForm({...operatorForm, id: e.target.value})}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Name
-                </label>
-                <input
-                  type="text"
-                  value={operatorForm.name}
-                  onChange={(e) => setOperatorForm({...operatorForm, name: e.target.value})}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={operatorForm.email}
-                  onChange={(e) => setOperatorForm({...operatorForm, email: e.target.value})}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: "var(--space-lg)" }}>
-                <label style={{ display: "block", marginBottom: "var(--space-sm)", fontWeight: "500" }}>
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  value={operatorForm.phone}
-                  onChange={(e) => setOperatorForm({...operatorForm, phone: e.target.value})}
-                  style={{
-                    width: "100%",
-                    padding: "var(--space-sm) var(--space-md)",
-                    border: "1px solid var(--light-gray)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--font-size-sm)"
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {editingOperator ? 'Update' : 'Create'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowOperatorForm(false)}
-                  className="btn btn-secondary" 
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Operator Form Dialog */}
+      <Dialog open={showOperatorForm} onOpenChange={setShowOperatorForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingOperator ? 'Edit Operator' : 'Add New Operator'}</DialogTitle>
+            <DialogDescription>
+              {editingOperator ? 'Update the operator details.' : 'Enter the details for the new operator.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleOperatorSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="operatorId">Operator ID</Label>
+              <Input
+                id="operatorId"
+                value={operatorForm.id}
+                onChange={(e) => setOperatorForm({...operatorForm, id: e.target.value})}
+                required
+                disabled={!!editingOperator}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="operatorName">Name</Label>
+              <Input
+                id="operatorName"
+                value={operatorForm.name}
+                onChange={(e) => setOperatorForm({...operatorForm, name: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={operatorForm.email}
+                onChange={(e) => setOperatorForm({...operatorForm, email: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={operatorForm.phone}
+                onChange={(e) => setOperatorForm({...operatorForm, phone: e.target.value})}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowOperatorForm(false)}>Cancel</Button>
+              <Button type="submit">{editingOperator ? 'Update' : 'Create'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

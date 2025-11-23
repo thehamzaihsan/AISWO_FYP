@@ -8,6 +8,18 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import { 
+  Home, 
+  LayoutDashboard, 
+  Cloud, 
+  Settings, 
+  Trash2, 
+  MessageSquare, 
+  LogOut, 
+  LogIn,
+  Recycle,
+  Search
+} from "lucide-react";
 
 // Pages
 import LandingPage from "./LandingPage";
@@ -22,78 +34,15 @@ import Footer from "./Footer";
 import Login from "./Login";
 
 // Navigation Component
-function Navigation({ showChatBot, setShowChatBot, user, onLogout }) {
-  const location = useLocation();
-  const isLanding = location.pathname === '/';
-
-  if (isLanding) return null;
-
-  return (
-    <nav className="nav-header" role="navigation" aria-label="Main navigation">
-      <div className="nav-content">
-        <Link to="/dashboard" className="nav-logo" aria-label="Smart Bins Home">
-          <div className="nav-logo-icon" aria-hidden="true">♻️</div>
-          Smart Bins
-        </Link>
-        
-        <div className="nav-links">
-          <Link to="/" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-            🏠 Home
-          </Link>
-          <Link to="/dashboard" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-            📊 Dashboard
-          </Link>
-          <Link to="/weather" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-            🌤️ Weather
-          </Link>
-          {user?.role === 'admin' && (
-            <Link to="/admin" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              ⚙️ Admin
-            </Link>
-          )}
-          {user && user.role !== 'admin' && (
-            <Link to="/my-bins" className="btn btn-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              🧹 My Bins
-            </Link>
-          )}
-          {user && (
-            <span className="nav-role-pill">
-              {user.role === 'admin' ? 'Admin' : 'Field Operator'}
-            </span>
-          )}
-          <button
-            onClick={() => setShowChatBot(!showChatBot)}
-            className="btn btn-primary"
-            style={{ fontSize: 'var(--font-size-sm)' }}
-            aria-label="Open AI Chat Assistant"
-          >
-            🤖 Chat
-          </button>
-          {user ? (
-            <button
-              onClick={onLogout}
-              className="btn btn-secondary"
-              style={{ fontSize: 'var(--font-size-sm)' }}
-              aria-label="Logout"
-            >
-              🚪 Logout
-            </button>
-          ) : (
-            <Link to="/login" className="btn btn-primary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              🔑 Login
-            </Link>
-          )}
-        </div>
-      </div>
-    </nav>
-  );
-}
+import Navbar from "./components/Navbar";
 
 // 404 Page Component
 function NotFound() {
   return (
     <div className="container" style={{ paddingTop: "var(--space-2xl)", textAlign: "center" }}>
-      <div style={{ fontSize: "var(--font-size-4xl)", marginBottom: "var(--space-lg)" }}>🔍</div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "var(--space-lg)" }}>
+        <Search size={64} color="var(--text-secondary)" />
+      </div>
       <h1 style={{ 
         fontSize: "var(--font-size-3xl)", 
         fontWeight: "700", 
@@ -117,18 +66,11 @@ function NotFound() {
 }
 
 function App() {
-  const [bins, setBins] = useState({});
   const [showChatBot, setShowChatBot] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
     requestFcmToken();
-    
-    // Fetch bins for navigation stats
-    fetch("http://localhost:5000/bins")
-      .then((res) => res.json())
-      .then((data) => setBins(data))
-      .catch((err) => console.error("Error fetching bins for nav:", err));
   }, []);
 
   const handleLogin = (userData) => {
@@ -153,7 +95,7 @@ function App() {
   return (
     <div className="App">
       <Router>
-        <Navigation showChatBot={showChatBot} setShowChatBot={setShowChatBot} user={user} onLogout={handleLogout} />
+        <Navbar showChatBot={showChatBot} setShowChatBot={setShowChatBot} user={user} onLogout={handleLogout} />
         <main className="main-content">
           <Routes>
             {/* Landing Page */}
