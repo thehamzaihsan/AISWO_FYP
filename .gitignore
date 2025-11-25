@@ -18,6 +18,10 @@
 .env.production.local
 .env.*.local
 
+# Firebase Configuration Files (contains project credentials)
+serviceAccountKey.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
 
 # Certificate & Key Files
 *.pem
