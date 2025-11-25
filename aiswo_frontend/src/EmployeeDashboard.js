@@ -267,10 +267,12 @@ function EmployeeDashboard({ user }) {
     }
 
     try {
-        throw new Error(`Failed to update bin state (${response.status})`);
-      }
+      const response = await axios.post(
+        `${API_CONFIG.BACKEND_URL}/operators/${operatorId}/bins/${binId}/clear`,
+        { completed: targetState }
+      );
 
-      const result = await response.json();
+      const result = response.data;
       if (Array.isArray(result.completedBins)) {
         setCompletedBins(result.completedBins);
       }

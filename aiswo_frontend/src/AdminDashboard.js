@@ -25,7 +25,7 @@ function AdminDashboard() {
     name: '',
     location: '',
     capacity: '',
-    operatorId: '',
+    operatorId: 'unassigned',
     status: 'Active'
   });
 
@@ -69,9 +69,11 @@ function AdminDashboard() {
       fetchData();
       setShowBinForm(false);
       setEditingBin(null);
-      setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: '', status: 'Active' });
+      setEditingBin(null);
+      setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: 'unassigned', status: 'Active' });
     } catch (error) {
       console.error('Error saving bin:', error);
+      alert(`Failed to save bin: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -89,6 +91,7 @@ function AdminDashboard() {
       setOperatorForm({ id: '', name: '', email: '', phone: '', password: '', assignedBins: [] });
     } catch (error) {
       console.error('Error saving operator:', error);
+      alert(`Failed to save operator: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -99,7 +102,7 @@ function AdminDashboard() {
       name: bin.name || binId,
       location: bin.location || '',
       capacity: bin.capacity || '',
-      operatorId: bin.operatorId || '',
+      operatorId: bin.operatorId || 'unassigned',
       status: bin.status || 'Active'
     });
     setEditingBin(binId);
@@ -127,6 +130,7 @@ function AdminDashboard() {
         fetchData();
       } catch (error) {
         console.error('Error deleting bin:', error);
+        alert(`Failed to delete bin: ${error.response?.data?.error || error.message}`);
       }
     }
   };
@@ -138,6 +142,7 @@ function AdminDashboard() {
         fetchData();
       } catch (error) {
         console.error('Error deleting operator:', error);
+        alert(`Failed to delete operator: ${error.response?.data?.error || error.message}`);
       }
     }
   };
@@ -176,7 +181,7 @@ function AdminDashboard() {
             </h2>
             <Button onClick={() => {
               setEditingBin(null);
-              setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: '', status: 'Active' });
+              setBinForm({ id: '', name: '', location: '', capacity: '', operatorId: 'unassigned', status: 'Active' });
               setShowBinForm(true);
             }}>
               <Plus className="mr-2 h-4 w-4" /> Add New Bin
