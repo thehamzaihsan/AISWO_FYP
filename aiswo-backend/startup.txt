@@ -1,0 +1,5 @@
+✅ Firebase connected successfully
+📊 Project: aiswo-simple-697dd
+🔗 Database: https://aiswo-simple-697dd-default-rtdb.asia-southeast1.firebasedatabase.app
+✅ Mistral AI initialized
+🚀 Backend running on http://localhost:5000

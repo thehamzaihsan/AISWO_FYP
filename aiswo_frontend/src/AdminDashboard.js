@@ -33,6 +33,7 @@ function AdminDashboard() {
     name: '',
     email: '',
     phone: '',
+    password: '',
     assignedBins: []
   });
 
@@ -84,7 +85,7 @@ function AdminDashboard() {
       fetchData();
       setShowOperatorForm(false);
       setEditingOperator(null);
-      setOperatorForm({ id: '', name: '', email: '', phone: '', assignedBins: [] });
+      setOperatorForm({ id: '', name: '', email: '', phone: '', password: '', assignedBins: [] });
     } catch (error) {
       console.error('Error saving operator:', error);
     }
@@ -111,6 +112,7 @@ function AdminDashboard() {
       name: operator.name || '',
       email: operator.email || '',
       phone: operator.phone || '',
+      password: '', // Don't show existing password
       assignedBins: operator.assignedBins || []
     });
     setEditingOperator(operatorId);
@@ -238,7 +240,7 @@ function AdminDashboard() {
             </h2>
             <Button onClick={() => {
               setEditingOperator(null);
-              setOperatorForm({ id: '', name: '', email: '', phone: '', assignedBins: [] });
+              setOperatorForm({ id: '', name: '', email: '', phone: '', password: '', assignedBins: [] });
               setShowOperatorForm(true);
             }}>
               <Plus className="mr-2 h-4 w-4" /> Add New Operator
@@ -401,6 +403,17 @@ function AdminDashboard() {
                 type="tel"
                 value={operatorForm.phone}
                 onChange={(e) => setOperatorForm({...operatorForm, phone: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password {editingOperator && '(Leave blank to keep current)'}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={operatorForm.password}
+                onChange={(e) => setOperatorForm({...operatorForm, password: e.target.value})}
+                required={!editingOperator} // Required only for new operators
+                placeholder={editingOperator ? "Enter new password to change" : "Enter password"}
               />
             </div>
             <div className="space-y-2">

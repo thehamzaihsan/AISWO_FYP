@@ -3,6 +3,7 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const axios = require("axios");
+const bcrypt = require("bcrypt");
 require('dotenv').config();
 
 const app = express();
@@ -587,27 +588,34 @@ app.get("/operators/:id", async (req, res) => {
 
 // Create new operator
 app.post("/operators", async (req, res) => {
-  const { id, name, email, phone, assignedBins } = req.body;
+  const { id, name, email, phone, assignedBins, password } = req.body;
   
-  if (!id || !name || !email) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!id || !name || !email || !password) {
+    return res.status(400).json({ error: "Missing required fields (id, name, email, password)" });
   }
   
   if (!firestore) {
     return res.status(503).json({ error: "Firestore not initialized" });
   }
   
-  const operatorData = {
-    name,
-    email,
-    phone: phone || '',
-    assignedBins: assignedBins || [],
-    createdAt: new Date().toISOString()
-  };
-  
   try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const operatorData = {
+      name,
+      email,
+      phone: phone || "",
+      assignedBins: assignedBins || [],
+      password: hashedPassword,
+      role: 'operator',
+      createdAt: new Date().toISOString()
+    };
+    
     await firestore.collection('operators').doc(id).set(operatorData);
-    res.json({ message: "Operator created successfully", operator: operatorData });
+    
+    // Remove password from response
+    const { password: _, ...responseData } = operatorData;
+    res.status(201).json({ message: "Operator created successfully", operator: { id, ...responseData } });
   } catch (error) {
     console.error("Error creating operator:", error);
     res.status(500).json({ error: "Failed to create operator" });
@@ -617,7 +625,7 @@ app.post("/operators", async (req, res) => {
 // Update operator
 app.put("/operators/:id", async (req, res) => {
   const id = req.params.id;
-  const { name, email, phone, assignedBins } = req.body;
+  const { password, ...otherUpdateData } = req.body; // Destructure password separately
   
   try {
     if (!firestore) {
@@ -629,16 +637,22 @@ app.put("/operators/:id", async (req, res) => {
       return res.status(404).json({ error: "Operator not found" });
     }
     
-    const updateData = {
-      name: name || operatorDoc.data().name,
-      email: email || operatorDoc.data().email,
-      phone: phone || operatorDoc.data().phone,
-      assignedBins: assignedBins !== undefined ? assignedBins : operatorDoc.data().assignedBins,
-      updatedAt: new Date().toISOString()
-    };
+    const updateData = { ...otherUpdateData }; // Start with other fields from req.body
+    
+    // Hash password if it's being updated
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+    
+    updateData.updatedAt = new Date().toISOString(); // Always update timestamp
     
     await firestore.collection('operators').doc(id).update(updateData);
-    res.json({ message: "Operator updated successfully", operator: updateData });
+    
+    // Fetch updated document to return latest data without password
+    const updatedOperatorDoc = await firestore.collection('operators').doc(id).get();
+    const { password: _, ...updatedOperatorData } = updatedOperatorDoc.data();
+    
+    res.json({ message: "Operator updated successfully", operator: updatedOperatorData });
   } catch (error) {
     console.error("Error updating operator:", error);
     res.status(500).json({ error: "Failed to update operator" });
@@ -664,6 +678,58 @@ app.delete("/operators/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting operator:", error);
     res.status(500).json({ error: "Failed to delete operator" });
+  }
+});
+
+// Login endpoint
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  try {
+    if (!firestore) {
+        return res.status(503).json({ error: "Firestore not initialized" });
+    }
+
+    // Check operators collection
+    const operatorsRef = firestore.collection('operators');
+    const snapshot = await operatorsRef.where('email', '==', email).get();
+
+    if (snapshot.empty) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const userDoc = snapshot.docs[0];
+    const userData = userDoc.data();
+
+    // Verify password
+    // Note: If existing operators don't have a password field, this might fail or need handling.
+    // We assume new operators created via POST /operators will have hashed passwords.
+    // For legacy data without password, we might need a migration or default check.
+    if (!userData.password) {
+         return res.status(401).json({ error: "Account setup incomplete (no password set)" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, userData.password);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Return user info (excluding password)
+    const { password: _, ...userProfile } = userData;
+    res.json({
+        ...userProfile,
+        operatorId: userDoc.id,
+        role: userProfile.role || 'operator' // Default to operator if role not set
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Login failed" });
   }
 });
 
