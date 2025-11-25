@@ -313,10 +313,9 @@ app.get("/bins", async (req, res) => {
   try {
     console.log("🔍 Fetching bins...");
     let bins = {};
-    let realBinData = null;
     let operators = {};
     
-    // Get operators data first
+    // Get operators data from Firestore
     if (firestore) {
       try {
         const operatorsSnapshot = await firestore.collection('operators').get();
@@ -333,51 +332,36 @@ app.get("/bins", async (req, res) => {
       operators = {};
     }
     
+    // Get ALL bins from Firebase Realtime Database
     if (db) {
       try {
-        // Get real data from bin1 (your hardware)
-        const snapshot = await db.ref("bins/bin1").once("value");
-        realBinData = snapshot.val() || {};
-        bins.bin1 = realBinData;
-        console.log(`✅ Retrieved bin1 data: ${realBinData.weightKg || 0}kg`);
+        const snapshot = await db.ref("bins").once("value");
+        const allBins = snapshot.val() || {};
+        
+        // Add all bins from Realtime Database
+        Object.keys(allBins).forEach(binId => {
+          bins[binId] = allBins[binId];
+        });
+        
+        console.log(`✅ Retrieved ${Object.keys(bins).length} bins from Realtime Database`);
       } catch (error) {
-        console.log(`⚠️ Error fetching bin1 data: ${error.message}`);
-        // Use dummy data for bin1 if Firebase fails
-        realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
-        bins.bin1 = realBinData;
+        console.log(`⚠️ Error fetching bins from Realtime Database: ${error.message}`);
       }
-    } else {
-      console.log("⚠️ No Firebase DB connection, using dummy bin1 data");
-      realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
-      bins.bin1 = realBinData;
     }
     
-    // Get bins from Firestore
-    if (firestore) {
-      try {
-        const binsSnapshot = await firestore.collection('bins').get();
-        binsSnapshot.forEach(doc => {
-          const binData = doc.data();
-          const binId = doc.id;
-          
-          // Skip bin1 as it's handled by Realtime Database
-          if (binId !== 'bin1') {
-            // Generate weighted data based on real hardware data
-            const weightedData = generateWeightedBinData(realBinData, binId);
-            bins[binId] = {
-              ...binData,
-              ...weightedData,
-              lastFetched: new Date().toISOString()
-            };
-          }
-        });
-      } catch (firestoreError) {
-        console.log("Firestore not available, using fallback data");
-      }
-    } else {
-      // Fallback when Firebase is not available
-      // No dummy bins to fallback to
+    // If no bins found, provide dummy data for bin1
+    if (Object.keys(bins).length === 0) {
+      console.log("⚠️ No bins found, using dummy bin1 data");
+      bins.bin1 = { 
+        weightKg: 5.2, 
+        fillPct: 52, 
+        status: "OK", 
+        updatedAt: new Date().toISOString() 
+      };
     }
+    
+    // Cache bins for chatbot
+    cachedBins = bins;
 
 
 
