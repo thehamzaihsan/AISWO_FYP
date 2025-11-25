@@ -49,13 +49,20 @@ try {
     throw new Error('No Firebase credentials found');
   }
   
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: databaseURL
-  });
+  // Check if Firebase app is already initialized
+  if (admin.apps.length === 0) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: databaseURL
+    });
+  }
   
   db = admin.database();
   firestore = admin.firestore();
+  
+  console.log("✅ Firebase connected successfully");
+  console.log(`📊 Project: ${serviceAccount.project_id}`);
+  console.log(`🔗 Database: ${databaseURL}`);
 } catch (error) {
   console.log("⚠️ Firebase not configured - running in demo mode");
   console.log("To enable Firebase, add serviceAccountKey.json file or set environment variables");
