@@ -83,10 +83,6 @@ out/
 # Nuxt.js build / generate output
 .nuxt
 
-# Gatsby files
-.cache/
-public
-
 # Compiled binary addons
 build/Release
 

@@ -4,23 +4,50 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
+const fs = require("fs");
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Firebase configuration - using environment variables or default setup
+// Firebase configuration - supports both local and Vercel deployment
 let db = null;
 let firestore = null;
 
 try {
-  const serviceAccount = require("./serviceAccountKey.json");
+  let serviceAccount;
+  let databaseURL;
   
-  // Auto-detect database URL from project ID
-  const projectId = serviceAccount.project_id;
-  const databaseURL = process.env.FIREBASE_DATABASE_URL || 
-                     `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`;
+  // Check if local serviceAccountKey.json exists (development)
+  if (fs.existsSync('./serviceAccountKey.json')) {
+    serviceAccount = require("./serviceAccountKey.json");
+    const projectId = serviceAccount.project_id;
+    databaseURL = process.env.FIREBASE_DATABASE_URL || 
+                  `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`;
+    console.log('📝 Using local serviceAccountKey.json');
+  } 
+  // Use environment variables (production/Vercel)
+  else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    serviceAccount = {
+      type: "service_account",
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.FIREBASE_CLIENT_EMAIL}`,
+      universe_domain: "googleapis.com"
+    };
+    databaseURL = process.env.FIREBASE_DATABASE_URL || 
+                  `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app`;
+    console.log('🌐 Using environment variables for Firebase (Vercel mode)');
+  } else {
+    throw new Error('No Firebase credentials found');
+  }
   
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -30,11 +57,11 @@ try {
   db = admin.database();
   firestore = admin.firestore();
   console.log("✅ Firebase connected successfully");
-  console.log(`📊 Project: ${projectId}`);
+  console.log(`📊 Project: ${serviceAccount.project_id}`);
   console.log(`🔗 Database: ${databaseURL}`);
 } catch (error) {
   console.log("⚠️ Firebase not configured - running in demo mode");
-  console.log("To enable Firebase, add serviceAccountKey.json file");
+  console.log("To enable Firebase, add serviceAccountKey.json file or set environment variables");
   console.log("Error:", error.message);
 }
 
@@ -594,6 +621,7 @@ app.post("/operators", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields (id, name, email, password)" });
   }
   
+  console.log("DEBUG: /operators called. Firestore type:", typeof firestore);
   if (!firestore) {
     console.log("DEBUG: Firestore is null in /operators. DB initialized:", !!db);
     return res.status(503).json({ error: "Firestore not initialized" });
