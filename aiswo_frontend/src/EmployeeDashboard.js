@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./components/ui/button"
+import { API_CONFIG } from './config';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "./components/ui/card"
 import { Progress } from "./components/ui/progress"
 import { Input } from "./components/ui/input"
@@ -108,14 +110,11 @@ function EmployeeDashboard({ user }) {
 
       setTasksLoading(true);
       try {
-        const response = await fetch(
-          `http://localhost:5000/operators/${operatorId}/progress`
+        const response = await axios.get(
+          `${API_CONFIG.BACKEND_URL}/operators/${operatorId}/progress`
         );
-        if (!response.ok) {
-          throw new Error(`Failed to load progress (${response.status})`);
-        }
 
-        const data = await response.json();
+        const data = response.data;
         setCompletedBins(Array.isArray(data.completedBins) ? data.completedBins : []);
 
         if (Array.isArray(data.tasks) && data.tasks.length) {
@@ -154,11 +153,8 @@ function EmployeeDashboard({ user }) {
       if (showSpinner) setRefreshing(true);
 
       try {
-        const response = await fetch("http://localhost:5000/bins");
-        if (!response.ok) {
-          throw new Error(`Failed to load bins (${response.status})`);
-        }
-        const data = await response.json();
+        const response = await axios.get(`${API_CONFIG.BACKEND_URL}/bins`);
+        const data = response.data;
         const filtered = {};
         targetIds.forEach((id) => {
           if (data[id]) {
@@ -194,13 +190,11 @@ function EmployeeDashboard({ user }) {
       let ids = user?.assignedBins || [];
 
       if (operatorId) {
-        const operatorRes = await fetch(
-          `http://localhost:5000/operators/${operatorId}`
+        const operatorRes = await axios.get(
+          `${API_CONFIG.BACKEND_URL}/operators/${operatorId}`
         );
-        if (operatorRes.ok) {
-          const operatorData = await operatorRes.json();
-          ids = operatorData.assignedBins || ids;
-        }
+        const operatorData = operatorRes.data;
+        ids = operatorData.assignedBins || ids;
       }
 
       // Remove duplicates
@@ -273,16 +267,6 @@ function EmployeeDashboard({ user }) {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/operators/${operatorId}/bins/${binId}/clear`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ completed: targetState }),
-        }
-      );
-
-      if (!response.ok) {
         throw new Error(`Failed to update bin state (${response.status})`);
       }
 

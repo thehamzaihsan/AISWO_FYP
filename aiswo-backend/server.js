@@ -712,6 +712,15 @@ app.delete("/operators/:id", async (req, res) => {
   }
 });
 
+// Test endpoint to verify server is running updated code
+app.get("/test-timestamp", (req, res) => {
+  res.json({ 
+    timestamp: new Date().toISOString(),
+    message: "Server code updated - timestamp endpoint working",
+    version: "2025-11-25-22:32"
+  });
+});
+
 // Login endpoint (supports both admin and operator login)
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;

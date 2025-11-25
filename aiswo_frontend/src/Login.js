@@ -6,6 +6,7 @@ import { Label } from './components/ui/label';
 import { Button } from './components/ui/button';
 import { Alert, AlertDescription } from './components/ui/alert';
 import { Loader2, AlertTriangle, Recycle } from 'lucide-react';
+import { API_CONFIG } from './config';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ function Login({ onLogin }) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API_CONFIG.BACKEND_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

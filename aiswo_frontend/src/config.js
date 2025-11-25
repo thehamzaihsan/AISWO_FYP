@@ -9,7 +9,7 @@ export const API_CONFIG = {
   OPENWEATHER_API_KEY: process.env.REACT_APP_OPENWEATHER_API_KEY || 'f4c33dca360f8875d88a28fbd7cf34e3',
   
   // Backend API URL
-  BACKEND_URL: 'http://localhost:5000'
+  BACKEND_URL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'
 };
 
 // Instructions for setting up API keys:

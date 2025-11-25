@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
 import { Badge } from "./components/ui/badge"
 import { Trash2, Edit, Plus, MapPin, Database, User } from "lucide-react"
+import { API_CONFIG } from './config';
 
 function AdminDashboard() {
   const [bins, setBins] = useState({});
@@ -45,8 +46,8 @@ function AdminDashboard() {
     try {
       setLoading(true);
       const [binsResponse, operatorsResponse] = await Promise.all([
-        axios.get('http://localhost:5000/bins'),
-        axios.get('http://localhost:5000/operators')
+        axios.get(`${API_CONFIG.BACKEND_URL}/bins`),
+        axios.get(`${API_CONFIG.BACKEND_URL}/operators`)
       ]);
       setBins(binsResponse.data);
       setOperators(operatorsResponse.data || {});
@@ -61,9 +62,9 @@ function AdminDashboard() {
     e.preventDefault();
     try {
       if (editingBin) {
-        await axios.put(`http://localhost:5000/bins/${editingBin}`, binForm);
+        await axios.put(`${API_CONFIG.BACKEND_URL}/bins/${editingBin}`, binForm);
       } else {
-        await axios.post('http://localhost:5000/bins', binForm);
+        await axios.post(`${API_CONFIG.BACKEND_URL}/bins`, binForm);
       }
       fetchData();
       setShowBinForm(false);
@@ -78,9 +79,9 @@ function AdminDashboard() {
     e.preventDefault();
     try {
       if (editingOperator) {
-        await axios.put(`http://localhost:5000/operators/${editingOperator}`, operatorForm);
+        await axios.put(`${API_CONFIG.BACKEND_URL}/operators/${editingOperator}`, operatorForm);
       } else {
-        await axios.post('http://localhost:5000/operators', operatorForm);
+        await axios.post(`${API_CONFIG.BACKEND_URL}/operators`, operatorForm);
       }
       fetchData();
       setShowOperatorForm(false);
@@ -122,7 +123,7 @@ function AdminDashboard() {
   const handleDeleteBin = async (binId) => {
     if (window.confirm('Are you sure you want to delete this bin?')) {
       try {
-        await axios.delete(`http://localhost:5000/bins/${binId}`);
+        await axios.delete(`${API_CONFIG.BACKEND_URL}/bins/${binId}`);
         fetchData();
       } catch (error) {
         console.error('Error deleting bin:', error);
@@ -133,7 +134,7 @@ function AdminDashboard() {
   const handleDeleteOperator = async (operatorId) => {
     if (window.confirm('Are you sure you want to delete this operator?')) {
       try {
-        await axios.delete(`http://localhost:5000/operators/${operatorId}`);
+        await axios.delete(`${API_CONFIG.BACKEND_URL}/operators/${operatorId}`);
         fetchData();
       } catch (error) {
         console.error('Error deleting operator:', error);

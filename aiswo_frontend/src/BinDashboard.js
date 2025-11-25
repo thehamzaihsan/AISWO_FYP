@@ -16,6 +16,7 @@ import { ArrowLeft, RefreshCw, TrendingUp, Weight, Ruler } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
+import { API_CONFIG } from './config';
 
 import BinStatus from "./BinStatus";
 
@@ -32,21 +33,18 @@ function BinDashboard() {
 
     setLoading(true);
     Promise.all([
-      fetch(`http://localhost:5000/bins/${id}`)
+      fetch(`${API_CONFIG.BACKEND_URL}/bins/${id}`)
         .then(res => res.json())
         .then(data => {
           console.log('Current bin data:', data);
           setCurrent(data);
         })
         .catch(err => console.error('Error fetching current data:', err)),
-      fetch(`http://localhost:5000/bins/${id}/history`)
+      fetch(`${API_CONFIG.BACKEND_URL}/bins/${id}/history`)
         .then(res => res.json())
         .then(data => {
           console.log('History data:', data);
-          console.log('History type:', typeof data);
           const historyArray = data ? Object.values(data) : [];
-          console.log('History array length:', historyArray.length);
-          console.log('Sample history item:', historyArray[0]);
           setHistory(historyArray);
         })
         .catch(err => console.error('Error fetching history:', err))

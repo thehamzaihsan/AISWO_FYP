@@ -5,6 +5,7 @@ import { Trash2, AlertTriangle, CheckCircle, RefreshCw, ArrowRight, TrendingUp }
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
+import { API_CONFIG } from './config';
 
 function BinsList() {
   const [bins, setBins] = useState({});
@@ -16,7 +17,7 @@ function BinsList() {
     if (showRefreshing) setRefreshing(true);
     
     try {
-      const res = await fetch("http://localhost:5000/bins");
+      const res = await fetch(`${API_CONFIG.BACKEND_URL}/bins`);
       const data = await res.json();
       setBins(data);
       setLoading(false);
