@@ -595,6 +595,7 @@ app.post("/operators", async (req, res) => {
   }
   
   if (!firestore) {
+    console.log("DEBUG: Firestore is null in /operators. DB initialized:", !!db);
     return res.status(503).json({ error: "Firestore not initialized" });
   }
   
