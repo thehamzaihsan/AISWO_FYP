@@ -10,7 +10,7 @@ const admin = require("firebase-admin");
 const fs = require("fs");
 
 // Configuration
-const BIN_IDS = ["bin1", "bin2", "bin3", "bin4", "bin5", "bin6"];
+const BIN_IDS = ["bin2", "bin3", "bin4", "bin5", "bin6"]; // bin1 is for real hardware
 const UPDATE_INTERVAL = 5000; // 5 seconds (like ESP32)
 
 // Sensor simulation ranges
@@ -18,7 +18,6 @@ const RANGES = {
   fillPct: { min: 0, max: 100 },
   temperature: { min: 15, max: 35 }, // Celsius
   humidity: { min: 30, max: 80 }, // Percentage
-  methane: { min: 0, max: 500 }, // PPM
   battery: { min: 60, max: 100 }, // Percentage
   distance: { min: 10, max: 400 } // cm
 };
@@ -72,7 +71,6 @@ function initializeBinState(binId) {
     fillPct: randomValue(RANGES.fillPct.min, RANGES.fillPct.max),
     temperature: randomValue(RANGES.temperature.min, RANGES.temperature.max, 1),
     humidity: randomValue(RANGES.humidity.min, RANGES.humidity.max, 1),
-    methane: randomValue(RANGES.methane.min, RANGES.methane.max),
     battery: randomValue(RANGES.battery.min, RANGES.battery.max),
     distance: randomValue(RANGES.distance.min, RANGES.distance.max)
   };
@@ -97,13 +95,6 @@ function updateBinState(binId) {
   state.humidity += randomValue(-3, 3, 1);
   state.humidity = Math.max(RANGES.humidity.min, Math.min(RANGES.humidity.max, state.humidity));
   
-  // Methane spikes occasionally (decomposition)
-  if (Math.random() > 0.8) {
-    state.methane = randomValue(100, RANGES.methane.max);
-  } else {
-    state.methane = Math.max(0, state.methane - randomValue(10, 30));
-  }
-  
   // Battery drains slowly
   state.battery = Math.max(RANGES.battery.min, state.battery - randomValue(0, 0.5, 1));
   
@@ -122,7 +113,6 @@ function generateBinData(binId) {
     fillPct: Math.round(state.fillPct),
     temperature: parseFloat(state.temperature.toFixed(1)),
     humidity: parseFloat(state.humidity.toFixed(1)),
-    methane: Math.round(state.methane),
     battery: Math.round(state.battery),
     distance: state.distance,
     timestamp: new Date().toISOString(),
@@ -145,7 +135,7 @@ async function pushBinData(binId) {
     
     // Log the update
     const statusEmoji = binData.fillPct > 80 ? '🔴' : binData.fillPct > 60 ? '🟡' : '🟢';
-    console.log(`${statusEmoji} ${binId}: ${binData.fillPct}% | Temp: ${binData.temperature}°C | Methane: ${binData.methane} PPM | Battery: ${binData.battery}%`);
+    console.log(`${statusEmoji} ${binId}: ${binData.fillPct}% | Temp: ${binData.temperature}°C | Battery: ${binData.battery}%`);
     
   } catch (error) {
     console.error(`❌ Error updating ${binId}:`, error.message);
