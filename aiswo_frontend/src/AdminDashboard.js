@@ -7,6 +7,7 @@ import { Label } from "./components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
+import { Badge } from "./components/ui/badge"
 import { Trash2, Edit, Plus, MapPin, Database, User } from "lucide-react"
 
 function AdminDashboard() {
@@ -401,6 +402,51 @@ function AdminDashboard() {
                 value={operatorForm.phone}
                 onChange={(e) => setOperatorForm({...operatorForm, phone: e.target.value})}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Assigned Bins</Label>
+              <div className="border rounded-md p-3 space-y-2">
+                {Object.keys(bins).length > 0 ? (
+                  Object.entries(bins).map(([binId, bin]) => (
+                    <div key={binId} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`bin-${binId}`}
+                        checked={operatorForm.assignedBins.includes(binId)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setOperatorForm({
+                              ...operatorForm,
+                              assignedBins: [...operatorForm.assignedBins, binId]
+                            });
+                          } else {
+                            setOperatorForm({
+                              ...operatorForm,
+                              assignedBins: operatorForm.assignedBins.filter(b => b !== binId)
+                            });
+                          }
+                        }}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <label htmlFor={`bin-${binId}`} className="text-sm cursor-pointer flex-1">
+                        {binId.toUpperCase()} - {bin.name || bin.location || 'Unknown'}
+                      </label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No bins available</p>
+                )}
+              </div>
+              {operatorForm.assignedBins.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="text-sm text-muted-foreground">Selected:</span>
+                  {operatorForm.assignedBins.map(binId => (
+                    <Badge key={binId} variant="secondary">
+                      {binId.toUpperCase()}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowOperatorForm(false)}>Cancel</Button>

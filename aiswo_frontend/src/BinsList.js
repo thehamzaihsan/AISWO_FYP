@@ -167,6 +167,12 @@ function BinsList() {
                     <span className="font-semibold">{Math.round(bin?.fillPct || 0)}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Assigned To</span>
+                    <span className="font-semibold text-xs">
+                      {bin?.assignedOperator ? bin.assignedOperator.name : 'Unassigned'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Last Updated</span>
                     <span className="font-semibold text-xs">{formatDate(bin?.updatedAt)}</span>
                   </div>

@@ -230,9 +230,9 @@ void sendToFirebase(float weightKg, float fillPct, String status, bool isBlocked
   json.set("location", "ESP32 Device");
   json.set("capacity", BIN_CAPACITY_KG);
   
-  // Update Firebase using updateNode (correct API for v4.4.17)
+  // Update Firebase using correct API for v4.4.17
   Serial.print("📤 Sending to Firebase... ");
-  if (Firebase.updateNode(fbdo, path, json)) {
+  if (Firebase.setJSON(fbdo, path, json)) {
     Serial.println("✅ Success!");
   } else {
     Serial.println("❌ Failed!");
@@ -255,6 +255,8 @@ void addToHistory(float weightKg, float fillPct, long distance) {
   // Push to history (creates auto-generated key)
   if (Firebase.pushJSON(fbdo, historyPath, historyEntry)) {
     Serial.println("📊 History updated");
+  } else {
+    Serial.println("❌ History failed: " + fbdo.errorReason());
   }
 }
 

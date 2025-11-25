@@ -1,0 +1,23 @@
+* Host localhost:5000 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:5000...
+* Connected to localhost (::1) port 5000
+* using HTTP/1.x
+> DELETE /bins/bin2 HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.15.0
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+< X-Powered-By: Express
+< Access-Control-Allow-Origin: *
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 25
+< ETag: W/"19-vqFGlEOki0Tcqfova+d7S34KMhM"
+< Date: Tue, 25 Nov 2025 21:28:28 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+* Connection #0 to host localhost left intact

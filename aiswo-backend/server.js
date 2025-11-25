@@ -37,53 +37,13 @@ try {
   console.log("Error:", error.message);
 }
 
-// 🔹 Dummy bins (bin2, bin3)
-const dummyBins = {
-  bin2: {
-    weightKg: 9.2,
-    fillPct: 92,
-    status: "NEEDS_EMPTYING",
-    updatedAt: new Date().toISOString(),
-    name: "Main Street Bin",
-    location: "Main Street, Downtown",
-    capacity: 10,
-    operatorId: "op1",
-    operatorEmail: "m.charagh02@gmail.com",
-    history: [
-      { ts: "2025-10-08 11:00", weightKg: 8.5, fillPct: 85 },
-      { ts: "2025-10-08 11:30", weightKg: 8.8, fillPct: 88 },
-      { ts: "2025-10-08 12:00", weightKg: 9.2, fillPct: 92 }
-    ]
-  },
-  bin3: {
-    weightKg: 5.1,
-    fillPct: 51,
-    status: "OK",
-    updatedAt: new Date().toISOString(),
-    name: "Park Avenue Bin",
-    location: "Park Avenue, Central Park",
-    capacity: 10,
-    operatorId: "op2",
-    operatorEmail: "m.charagh02@gmail.com",
-    history: [
-      { ts: "2025-10-08 10:00", weightKg: 4.8, fillPct: 48 },
-      { ts: "2025-10-08 10:30", weightKg: 4.9, fillPct: 49 },
-      { ts: "2025-10-08 11:00", weightKg: 5.1, fillPct: 51 }
-    ]
-  }
-};
+
 
 // 🔹 Weighted data generation for multiple bins using real hardware data
-const WEIGHT_FACTORS = {
-  bin2: 0.3,
-  bin3: 0.5,
-  bin4: 0.7,
-  bin5: 0.4,
-  bin6: 0.6
-};
+
 
 function generateWeightedBinData(realBinData, binId) {
-  const weightFactor = WEIGHT_FACTORS[binId] || 0.5;
+  const weightFactor = 0.5;
   
   if (!realBinData || !realBinData.weightKg) {
     // Fallback data if real data is not available
@@ -117,23 +77,6 @@ function generateWeightedBinData(realBinData, binId) {
 }
 
 // 🔹 Dummy operators (will be moved to Firestore)
-const dummyOperators = {
-  op1: {
-    name: "John Smith",
-    email: "m.charagh02@gmail.com",
-    phone: "+1-555-0123",
-    assignedBins: ["bin2"],
-    createdAt: new Date().toISOString()
-  },
-  op2: {
-    name: "Sarah Johnson",
-    email: "m.charagh02@gmail.com",
-    phone: "+1-555-0124",
-    assignedBins: ["bin3"],
-    createdAt: new Date().toISOString()
-  }
-};
-
 const operatorTaskTemplates = [
   { id: "inspect", label: "Inspect assigned bins within your zone" },
   { id: "report", label: "Report any hardware or location issues" },
@@ -285,22 +228,35 @@ async function checkWeatherAndSendAlerts() {
     if (weatherId >= 500 && weatherId < 600) {
       console.log("🌧️ Rain detected! Sending weather alerts...");
       
-      // Send alerts to all operators
-      for (const [operatorId, operator] of Object.entries(dummyOperators)) {
-        const weatherAlertEmail = {
-          from: 'm.charaghyousafkhan@gmail.com',
-          to: operator.email,
-          subject: `🌧️ Weather Alert: Rain Expected - Bin Monitoring Required`,
-          text: `Dear ${operator.name},\n\nRain is expected in your area. Please check your assigned bins for potential overflow issues.\n\nWeather Details:\n- Condition: ${weather.weather[0].description}\n- Temperature: ${weather.main.temp}°C\n- Humidity: ${weather.main.humidity}%\n\nPlease ensure bins are properly secured and monitor for overflow.\n\nBest regards,\nSmart Bin Monitoring System`
-        };
+      // Get operators from Firestore
+      if (!firestore) {
+        console.log("⚠️ Firestore not available, cannot send weather alerts");
+        return;
+      }
+      
+      try {
+        const operatorsSnapshot = await firestore.collection('operators').get();
         
-        transporter.sendMail(weatherAlertEmail, (error, info) => {
-          if (error) {
-            console.error('Error sending weather alert email:', error);
-          } else {
-            console.log(`Weather alert email sent to ${operator.name}:`, info.response);
-          }
+        // Send alerts to all operators
+        operatorsSnapshot.forEach(doc => {
+          const operator = doc.data();
+          const weatherAlertEmail = {
+            from: 'm.charaghyousafkhan@gmail.com',
+            to: operator.email,
+            subject: `🌧️ Weather Alert: Rain Expected - Bin Monitoring Required`,
+            text: `Dear ${operator.name},\n\nRain is expected in your area. Please check your assigned bins for potential overflow issues.\n\nWeather Details:\n- Condition: ${weather.weather[0].description}\n- Temperature: ${weather.main.temp}°C\n- Humidity: ${weather.main.humidity}%\n\nPlease ensure bins are properly secured and monitor for overflow.\n\nBest regards,\nSmart Bin Monitoring System`
+          };
+          
+          transporter.sendMail(weatherAlertEmail, (error, info) => {
+            if (error) {
+              console.error('Error sending weather alert email:', error);
+            } else {
+              console.log(`📧 Weather alert email sent to ${operator.name}:`, info.response);
+            }
+          });
         });
+      } catch (firestoreError) {
+        console.error('Error fetching operators from Firestore:', firestoreError);
       }
     }
   } catch (error) {
@@ -337,12 +293,12 @@ app.get("/bins", async (req, res) => {
         });
         console.log("✅ Operators loaded from Firestore");
       } catch (firestoreError) {
-        console.log("⚠️ Firestore error, using dummy operators");
-        operators = dummyOperators;
+        console.log("⚠️ Firestore error loading operators:", firestoreError.message);
+        operators = {};
       }
     } else {
-      console.log("⚠️ Firestore not available, using dummy operators");
-      operators = dummyOperators;
+      console.log("⚠️ Firestore not available");
+      operators = {};
     }
     
     if (db) {
@@ -385,42 +341,30 @@ app.get("/bins", async (req, res) => {
         });
       } catch (firestoreError) {
         console.log("Firestore not available, using fallback data");
-        // Fallback to dummy data if Firestore is not available
-        Object.keys(dummyBins).forEach(binId => {
-          const weightedData = generateWeightedBinData(realBinData, binId);
-          bins[binId] = {
-            ...dummyBins[binId],
-            ...weightedData,
-            lastFetched: new Date().toISOString()
-          };
-        });
       }
     } else {
       // Fallback when Firebase is not available
-      Object.keys(dummyBins).forEach(binId => {
-        const weightedData = generateWeightedBinData(realBinData, binId);
-        bins[binId] = {
-          ...dummyBins[binId],
-          ...weightedData,
-          lastFetched: new Date().toISOString()
-        };
-      });
+      // No dummy bins to fallback to
     }
 
-    // Always include dummy bins for demonstration
-    Object.keys(dummyBins).forEach(binId => {
-      if (!bins[binId]) {
-        bins[binId] = {
-          ...dummyBins[binId],
-          lastFetched: new Date().toISOString()
-        };
-      }
-    });
+
 
     // Add last updated timestamp to each bin
     Object.keys(bins).forEach(id => {
       if (bins[id]) {
         bins[id].lastFetched = new Date().toISOString();
+        
+        // Find which operator is assigned to this bin
+        bins[id].assignedOperator = null;
+        Object.entries(operators).forEach(([opId, operator]) => {
+          if (operator.assignedBins && operator.assignedBins.includes(id)) {
+            bins[id].assignedOperator = {
+              id: opId,
+              name: operator.name,
+              email: operator.email
+            };
+          }
+        });
       }
     });
 
@@ -433,13 +377,13 @@ app.get("/bins", async (req, res) => {
           console.log(`⚠️ ALERT: ${id} is almost full (${bin.fillPct}%)`);
           
           // Send email to assigned operator
-          if (bin.operatorId && operators[bin.operatorId]) {
-            const operator = operators[bin.operatorId];
+          if (bin.assignedOperator) {
+            const operator = bin.assignedOperator;
             const operatorAlertEmail = {
               from: 'm.charaghyousafkhan@gmail.com',
               to: operator.email,
-              subject: `🚨 URGENT: Bin ${id} is Full - Immediate Action Required`,
-              text: `Dear ${operator.name},\n\nBin ${id} (${bin.name || id}) is at ${bin.fillPct}% capacity and needs immediate attention.\n\nBin Details:\n- Location: ${bin.location || 'Not specified'}\n- Current Weight: ${bin.weightKg} kg\n- Fill Level: ${bin.fillPct}%\n- Status: ${bin.status}\n\nPlease empty this bin as soon as possible to prevent overflow.\n\nBest regards,\nSmart Bin Monitoring System`
+              subject: `🚨 URGENT: Bin ${id.toUpperCase()} is Full - Immediate Action Required`,
+              text: `Dear ${operator.name},\n\nBin ${id.toUpperCase()} (${bin.name || id}) is at ${bin.fillPct.toFixed(1)}% capacity and needs immediate attention.\n\nBin Details:\n- Location: ${bin.location || 'Not specified'}\n- Current Weight: ${bin.weightKg.toFixed(2)} kg\n- Fill Level: ${bin.fillPct.toFixed(1)}%\n- Status: ${bin.status}\n\nPlease empty this bin as soon as possible to prevent overflow.\n\nBest regards,\nSmart Bin Monitoring System`
             };
             
             transporter.sendMail(operatorAlertEmail, (error, info) => {
@@ -449,10 +393,10 @@ app.get("/bins", async (req, res) => {
                 console.log(`📧 Operator alert email sent to ${operator.name} (${operator.email}):`, info.response);
               }
             });
+          } else {
+            // Send to admin if no operator assigned
+            sendBinAlertEmail(id, bin.fillPct);
           }
-          
-          // Send general alert email to admin
-          sendBinAlertEmail(id, bin.fillPct);
           
           if (testFcmToken && testFcmToken !== "YOUR_FCM_DEVICE_TOKEN_HERE") {
             sendBinAlertPush(id, bin.fillPct, testFcmToken);
@@ -520,24 +464,7 @@ app.get("/bins/:id", async (req, res) => {
         }
       } else {
         // Fallback to dummy data
-        if (dummyBins[id]) {
-          let realBinData = null;
-          if (db) {
-            const snapshot = await db.ref("bins/bin1").once("value");
-            realBinData = snapshot.val() || {};
-          }
-          
-          const weightedData = generateWeightedBinData(realBinData, id);
-          const finalBinData = {
-            ...dummyBins[id],
-            ...weightedData,
-            lastFetched: new Date().toISOString()
-          };
-          
-          return res.json(finalBinData);
-        } else {
-          return res.status(404).json({ error: "Bin not found" });
-        }
+        return res.status(404).json({ error: "Bin not found" });
       }
     }
   } catch (err) {
@@ -553,8 +480,6 @@ app.get("/bins/:id/history", async (req, res) => {
     if (id === "bin1") {
       const snapshot = await db.ref("bins/bin1/history").once("value");
       return res.json(snapshot.val() || []); // safe return
-    } else if (dummyBins[id]) {
-      return res.json(dummyBins[id].history);
     } else {
       return res.status(404).json({ error: "History not found" });
     }
@@ -595,23 +520,11 @@ app.get("/stats", async (req, res) => {
         });
       } catch (firestoreError) {
         console.log("Firestore not available for stats, using fallback");
-        Object.keys(dummyBins).forEach(binId => {
-          const weightedData = generateWeightedBinData(realBinData, binId);
-          allBins[binId] = {
-            ...dummyBins[binId],
-            ...weightedData
-          };
-        });
+        // No dummy bins to fallback to
       }
     } else {
       // Fallback when Firebase is not available
-      Object.keys(dummyBins).forEach(binId => {
-        const weightedData = generateWeightedBinData(realBinData, binId);
-        allBins[binId] = {
-          ...dummyBins[binId],
-          ...weightedData
-        };
-      });
+      // No dummy bins to fallback to
     }
 
     const stats = {
@@ -636,16 +549,16 @@ app.get("/stats", async (req, res) => {
 // Get all operators
 app.get("/operators", async (req, res) => {
   try {
-    if (firestore) {
-      const operatorsSnapshot = await firestore.collection('operators').get();
-      const operators = {};
-      operatorsSnapshot.forEach(doc => {
-        operators[doc.id] = doc.data();
-      });
-      res.json(operators);
-    } else {
-      res.json(dummyOperators);
+    if (!firestore) {
+      return res.status(503).json({ error: "Firestore not initialized" });
     }
+    
+    const operatorsSnapshot = await firestore.collection('operators').get();
+    const operators = {};
+    operatorsSnapshot.forEach(doc => {
+      operators[doc.id] = doc.data();
+    });
+    res.json(operators);
   } catch (error) {
     console.error("Error fetching operators:", error);
     res.status(500).json({ error: "Failed to fetch operators" });
@@ -656,19 +569,15 @@ app.get("/operators", async (req, res) => {
 app.get("/operators/:id", async (req, res) => {
   const id = req.params.id;
   try {
-    if (firestore) {
-      const operatorDoc = await firestore.collection('operators').doc(id).get();
-      if (operatorDoc.exists) {
-        res.json(operatorDoc.data());
-      } else {
-        res.status(404).json({ error: "Operator not found" });
-      }
+    if (!firestore) {
+      return res.status(503).json({ error: "Firestore not initialized" });
+    }
+    
+    const operatorDoc = await firestore.collection('operators').doc(id).get();
+    if (operatorDoc.exists) {
+      res.json(operatorDoc.data());
     } else {
-      if (dummyOperators[id]) {
-        res.json(dummyOperators[id]);
-      } else {
-        res.status(404).json({ error: "Operator not found" });
-      }
+      res.status(404).json({ error: "Operator not found" });
     }
   } catch (error) {
     console.error(`Error fetching operator ${id}:`, error);
@@ -684,6 +593,10 @@ app.post("/operators", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
   
+  if (!firestore) {
+    return res.status(503).json({ error: "Firestore not initialized" });
+  }
+  
   const operatorData = {
     name,
     email,
@@ -693,13 +606,8 @@ app.post("/operators", async (req, res) => {
   };
   
   try {
-    if (firestore) {
-      await firestore.collection('operators').doc(id).set(operatorData);
-      res.json({ message: "Operator created successfully", operator: operatorData });
-    } else {
-      dummyOperators[id] = operatorData;
-      res.json({ message: "Operator created successfully", operator: operatorData });
-    }
+    await firestore.collection('operators').doc(id).set(operatorData);
+    res.json({ message: "Operator created successfully", operator: operatorData });
   } catch (error) {
     console.error("Error creating operator:", error);
     res.status(500).json({ error: "Failed to create operator" });
@@ -712,38 +620,25 @@ app.put("/operators/:id", async (req, res) => {
   const { name, email, phone, assignedBins } = req.body;
   
   try {
-    if (firestore) {
-      const operatorDoc = await firestore.collection('operators').doc(id).get();
-      if (!operatorDoc.exists) {
-        return res.status(404).json({ error: "Operator not found" });
-      }
-      
-      const updateData = {
-        name: name || operatorDoc.data().name,
-        email: email || operatorDoc.data().email,
-        phone: phone || operatorDoc.data().phone,
-        assignedBins: assignedBins || operatorDoc.data().assignedBins,
-        updatedAt: new Date().toISOString()
-      };
-      
-      await firestore.collection('operators').doc(id).update(updateData);
-      res.json({ message: "Operator updated successfully", operator: updateData });
-    } else {
-      if (!dummyOperators[id]) {
-        return res.status(404).json({ error: "Operator not found" });
-      }
-      
-      dummyOperators[id] = {
-        ...dummyOperators[id],
-        name: name || dummyOperators[id].name,
-        email: email || dummyOperators[id].email,
-        phone: phone || dummyOperators[id].phone,
-        assignedBins: assignedBins || dummyOperators[id].assignedBins,
-        updatedAt: new Date().toISOString()
-      };
-      
-      res.json({ message: "Operator updated successfully", operator: dummyOperators[id] });
+    if (!firestore) {
+      return res.status(503).json({ error: "Firestore not initialized" });
     }
+    
+    const operatorDoc = await firestore.collection('operators').doc(id).get();
+    if (!operatorDoc.exists) {
+      return res.status(404).json({ error: "Operator not found" });
+    }
+    
+    const updateData = {
+      name: name || operatorDoc.data().name,
+      email: email || operatorDoc.data().email,
+      phone: phone || operatorDoc.data().phone,
+      assignedBins: assignedBins !== undefined ? assignedBins : operatorDoc.data().assignedBins,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await firestore.collection('operators').doc(id).update(updateData);
+    res.json({ message: "Operator updated successfully", operator: updateData });
   } catch (error) {
     console.error("Error updating operator:", error);
     res.status(500).json({ error: "Failed to update operator" });
@@ -755,22 +650,17 @@ app.delete("/operators/:id", async (req, res) => {
   const id = req.params.id;
   
   try {
-    if (firestore) {
-      const operatorDoc = await firestore.collection('operators').doc(id).get();
-      if (!operatorDoc.exists) {
-        return res.status(404).json({ error: "Operator not found" });
-      }
-      
-      await firestore.collection('operators').doc(id).delete();
-      res.json({ message: "Operator deleted successfully" });
-    } else {
-      if (!dummyOperators[id]) {
-        return res.status(404).json({ error: "Operator not found" });
-      }
-      
-      delete dummyOperators[id];
-      res.json({ message: "Operator deleted successfully" });
+    if (!firestore) {
+      return res.status(503).json({ error: "Firestore not initialized" });
     }
+    
+    const operatorDoc = await firestore.collection('operators').doc(id).get();
+    if (!operatorDoc.exists) {
+      return res.status(404).json({ error: "Operator not found" });
+    }
+    
+    await firestore.collection('operators').doc(id).delete();
+    res.json({ message: "Operator deleted successfully" });
   } catch (error) {
     console.error("Error deleting operator:", error);
     res.status(500).json({ error: "Failed to delete operator" });
@@ -834,9 +724,7 @@ app.post("/operators/:operatorId/bins/:binId/clear", async (req, res) => {
         const docRef = firestore.collection("bins").doc(binId);
         const docSnapshot = await docRef.get();
         if (!docSnapshot.exists) {
-          if (!dummyBins[binId]) {
-            return res.status(404).json({ error: "Bin not found" });
-          }
+          return res.status(404).json({ error: "Bin not found" });
         } else {
           const updates = {
             status: "Normal",
@@ -861,31 +749,12 @@ app.post("/operators/:operatorId/bins/:binId/clear", async (req, res) => {
       }
 
       if (!updatedBinData) {
-        if (!dummyBins[binId]) {
-          return res.status(404).json({ error: "Bin not found" });
-        }
-        dummyBins[binId] = {
-          ...dummyBins[binId],
-          status: "Normal",
-          fillPct: 0,
-          weightKg: 0,
-          lastClearedAt: timestamp,
-          lastClearedBy: operatorId
-        };
-        if (!dummyBins[binId].history) {
-          dummyBins[binId].history = [];
-        }
-        dummyBins[binId].history.push({
-          ts: timestamp,
-          type: "clear",
-          operatorId,
-          note
-        });
-        updatedBinData = dummyBins[binId];
+        return res.status(404).json({ error: "Bin not found" });
       }
-    } else if (dummyBins[binId]) {
-      updatedBinData = dummyBins[binId];
-    }
+      } else {
+        // Fallback to dummy data
+        // No dummy bins to fallback to
+      }
 
     const completedBins = toggleCompletedBin(operatorId, binId, completed, { note });
     res.json({
@@ -927,8 +796,7 @@ app.post("/bins", async (req, res) => {
       await firestore.collection('bins').doc(id).set(binData);
       res.json({ message: "Bin created successfully", bin: binData });
     } else {
-      dummyBins[id] = binData;
-      res.json({ message: "Bin created successfully", bin: binData });
+      return res.status(503).json({ error: "Firestore not initialized" });
     }
   } catch (error) {
     console.error("Error creating bin:", error);
@@ -960,21 +828,8 @@ app.put("/bins/:id", async (req, res) => {
       await firestore.collection('bins').doc(id).update(updateData);
       res.json({ message: "Bin updated successfully", bin: updateData });
     } else {
-      if (!dummyBins[id]) {
-        return res.status(404).json({ error: "Bin not found" });
-      }
-      
-      dummyBins[id] = {
-        ...dummyBins[id],
-        name: name || dummyBins[id].name,
-        location: location || dummyBins[id].location,
-        capacity: capacity || dummyBins[id].capacity,
-        operatorId: operatorId || dummyBins[id].operatorId,
-        status: status || dummyBins[id].status,
-        updatedAt: new Date().toISOString()
-      };
-      
-      res.json({ message: "Bin updated successfully", bin: dummyBins[id] });
+      // Fallback to dummy data
+      return res.status(503).json({ error: "Firestore not initialized" });
     }
   } catch (error) {
     console.error("Error updating bin:", error);
@@ -996,11 +851,8 @@ app.delete("/bins/:id", async (req, res) => {
       await firestore.collection('bins').doc(id).delete();
       res.json({ message: "Bin deleted successfully" });
     } else {
-      if (!dummyBins[id]) {
-        return res.status(404).json({ error: "Bin not found" });
-      }
-      
-      delete dummyBins[id];
+      // Fallback to dummy data
+      return res.status(503).json({ error: "Firestore not initialized" });
       res.json({ message: "Bin deleted successfully" });
     }
   } catch (error) {
@@ -1047,7 +899,10 @@ app.post("/test-alert/:binId", async (req, res) => {
 });
 
 // ================= Chatbot Endpoints =================
-const chatbot = require('./chatbot/gemini');
+const SmartBinChatbot = require('./chatbot/mistral');
+const chatbot = new SmartBinChatbot({
+  getAllBins: async () => cachedBins
+});
 
 // POST /chatbot/message - Send message to chatbot
 app.post('/chatbot/message', async (req, res) => {
@@ -1058,23 +913,59 @@ app.post('/chatbot/message', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Use a default userId if not provided
-    const userIdentifier = userId || 'anonymous';
+    // Fetch current bins data to provide to chatbot
+    let bins = {};
+    let realBinData = null;
 
-    // Gather context for chatbot
-    const context = {
-      bins: cachedBins,
-      operators: cachedOperators,
-      weather: cachedWeather
-    };
+    // Get bin1 from Realtime Database
+    if (db) {
+      try {
+        const snapshot = await db.ref("bins/bin1").once("value");
+        realBinData = snapshot.val() || {};
+        bins.bin1 = realBinData;
+      } catch (error) {
+        realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
+        bins.bin1 = realBinData;
+      }
+    } else {
+      realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
+      bins.bin1 = realBinData;
+    }
+
+    // Get other bins from Firestore
+    if (firestore) {
+      try {
+        const binsSnapshot = await firestore.collection('bins').get();
+        
+        if (binsSnapshot.size > 0) {
+          binsSnapshot.forEach(doc => {
+            const binData = doc.data();
+            const binId = doc.id;
+            
+            if (binId !== 'bin1') {
+              const weightedData = generateWeightedBinData(realBinData, binId);
+              bins[binId] = {
+                ...binData,
+                ...weightedData,
+                lastFetched: new Date().toISOString()
+              };
+            }
+          });
+        }
+      } catch (error) {
+        console.log("Firestore error:", error);
+      }
+    }
+
+    // Update cached bins for chatbot to use
+    cachedBins = bins;
 
     // Get response from chatbot
-    const result = await chatbot.chat(userIdentifier, message, context);
+    const response = await chatbot.chat(message);
 
     res.json({
-      response: result.response,
-      timestamp: result.timestamp,
-      userId: userIdentifier
+      response: response,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {

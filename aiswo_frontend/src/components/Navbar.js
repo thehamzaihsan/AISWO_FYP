@@ -43,9 +43,7 @@ function Navbar({ showChatBot, setShowChatBot, user, onLogout }) {
           {user && (
             <span className="text-sm font-medium">{user.role === 'admin' ? 'Admin' : 'Field Operator'}</span>
           )}
-          <Button variant="ghost" onClick={() => setShowChatBot(!showChatBot)}>
-            <MessageSquare className="h-4 w-4" />
-          </Button>
+
           {user ? (
             <Button variant="ghost" onClick={onLogout}>
               <LogOut className="h-4 w-4" />

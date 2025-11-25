@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
 class SmartBinChatbot {
   constructor() {
-    this.model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    this.model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     this.conversationHistory = new Map(); // Store conversations per user
   }
 
