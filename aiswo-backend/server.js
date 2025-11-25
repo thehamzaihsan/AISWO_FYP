@@ -56,9 +56,6 @@ try {
   
   db = admin.database();
   firestore = admin.firestore();
-  console.log("✅ Firebase connected successfully");
-  console.log(`📊 Project: ${serviceAccount.project_id}`);
-  console.log(`🔗 Database: ${databaseURL}`);
 } catch (error) {
   console.log("⚠️ Firebase not configured - running in demo mode");
   console.log("To enable Firebase, add serviceAccountKey.json file or set environment variables");
@@ -621,9 +618,7 @@ app.post("/operators", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields (id, name, email, password)" });
   }
   
-  console.log("DEBUG: /operators called. Firestore type:", typeof firestore);
   if (!firestore) {
-    console.log("DEBUG: Firestore is null in /operators. DB initialized:", !!db);
     return res.status(503).json({ error: "Firestore not initialized" });
   }
   

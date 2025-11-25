@@ -304,4 +304,6 @@ site/
 !esp32/
 
 # Keep project structure documentation
-!project_structure.txt
+!project_structure.txt# Vercel environment variables output
+vercel-env-vars.txt
+aiswo-backend/vercel-env-vars.txt
