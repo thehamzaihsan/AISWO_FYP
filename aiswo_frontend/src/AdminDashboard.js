@@ -101,7 +101,7 @@ function AdminDashboard() {
       name: bin.name || binId,
       location: bin.location || '',
       capacity: bin.capacity || '',
-      operatorId: bin.operatorId || 'unassigned',
+      operatorId: bin.assignedTo || 'unassigned', // Use assignedTo from backend
       status: bin.status || 'Active'
     });
     setEditingBin(binId);
@@ -219,7 +219,7 @@ function AdminDashboard() {
                         <User className="h-3 w-3 mr-1" /> Operator:
                       </span>
                       <span className="font-medium">
-                        {bin.operatorId ? operators[bin.operatorId]?.name || bin.operatorId : 'Unassigned'}
+                        {bin.assignedOperator ? bin.assignedOperator.name : 'Unassigned'}
                       </span>
                     </div>
                   </div>
@@ -274,7 +274,7 @@ function AdminDashboard() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Assigned Bins:</span>
                       <span className="font-medium">
-                        {Object.values(bins).filter(b => b.operatorId === operatorId).length}
+                        {operator.assignedBins ? operator.assignedBins.length : 0}
                       </span>
                     </div>
                   </div>

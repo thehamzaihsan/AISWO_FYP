@@ -100,7 +100,6 @@ function updateBinState(binId) {
 // Convert sensor data to ESP32 format (matching .ino file exactly)
 function generateBinData(binId) {
   const state = updateBinState(binId);
-  const config = BIN_CONFIGS[binId];
   const isBlocked = Math.random() < 0.02; // 2% chance of blockage
   
   // Determine status (matching ESP32 logic)
@@ -113,16 +112,13 @@ function generateBinData(binId) {
     status = "Normal";
   }
   
-  // Match exact ESP32 format: weightKg, fillPct, status, isBlocked, updatedAt, name, location, capacity
+  // Only technical data goes to Realtime DB (name, location, capacity are in Firestore)
   return {
     weightKg: parseFloat(state.weightKg.toFixed(5)),
     fillPct: state.fillPct,
     status: status,
     isBlocked: isBlocked,
-    updatedAt: new Date().toISOString(),
-    name: config.name,
-    location: config.location,
-    capacity: config.capacity
+    updatedAt: new Date().toISOString()
   };
 }
 
@@ -131,9 +127,10 @@ async function pushBinData(binId) {
   if (!db) return;
   
   const binData = generateBinData(binId);
+  const config = BIN_CONFIGS[binId];
   
   try {
-    // Update main bin data (matching ESP32 updateNode behavior)
+    // Update main bin data (only technical data, metadata is in Firestore)
     await db.ref(`bins/${binId}`).update(binData);
     
     // Add to history (matching ESP32 addToHistory)
@@ -143,9 +140,9 @@ async function pushBinData(binId) {
       timestamp: binData.updatedAt
     });
     
-    // Log the update
+    // Log the update with bin name from config
     const statusEmoji = binData.fillPct >= 90 ? '🔴' : binData.fillPct >= 70 ? '🟡' : '🟢';
-    console.log(`${statusEmoji} ${binId} (${binData.name}): ${binData.fillPct.toFixed(2)}% | Weight: ${binData.weightKg.toFixed(3)}kg | ${binData.status}`);
+    console.log(`${statusEmoji} ${binId} (${config.name}): ${binData.fillPct.toFixed(2)}% | Weight: ${binData.weightKg.toFixed(3)}kg | ${binData.status}`);
     
   } catch (error) {
     console.error(`❌ Error updating ${binId}:`, error.message);
