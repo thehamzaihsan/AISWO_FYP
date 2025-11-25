@@ -13,13 +13,13 @@ const fs = require("fs");
 const BIN_IDS = ["bin2", "bin3", "bin4", "bin5", "bin6"]; // bin1 is for real hardware
 const UPDATE_INTERVAL = 5000; // 5 seconds (like ESP32)
 
-// Sensor simulation ranges
-const RANGES = {
-  fillPct: { min: 0, max: 100 },
-  temperature: { min: 15, max: 35 }, // Celsius
-  humidity: { min: 30, max: 80 }, // Percentage
-  battery: { min: 60, max: 100 }, // Percentage
-  distance: { min: 10, max: 400 } // cm
+// Bin configurations (matching real bins)
+const BIN_CONFIGS = {
+  bin2: { name: "Kitchen Bin", location: "Kitchen", capacity: 5 },
+  bin3: { name: "Living Room Bin", location: "Living Room", capacity: 4 },
+  bin4: { name: "Bathroom Bin", location: "Bathroom", capacity: 3 },
+  bin5: { name: "Office Bin", location: "Office", capacity: 4 },
+  bin6: { name: "Garage Bin", location: "Garage", capacity: 6 }
 };
 
 let db = null;
@@ -67,12 +67,13 @@ function randomValue(min, max, decimals = 0) {
 const binStates = {};
 
 function initializeBinState(binId) {
+  const capacity = BIN_CONFIGS[binId].capacity;
+  const initialWeight = randomValue(0, capacity * 0.3, 2); // Start 0-30% full
+  const initialFillPct = (initialWeight / capacity) * 100;
+  
   binStates[binId] = {
-    fillPct: randomValue(RANGES.fillPct.min, RANGES.fillPct.max),
-    temperature: randomValue(RANGES.temperature.min, RANGES.temperature.max, 1),
-    humidity: randomValue(RANGES.humidity.min, RANGES.humidity.max, 1),
-    battery: randomValue(RANGES.battery.min, RANGES.battery.max),
-    distance: randomValue(RANGES.distance.min, RANGES.distance.max)
+    weightKg: initialWeight,
+    fillPct: initialFillPct
   };
 }
 
@@ -83,43 +84,45 @@ function updateBinState(binId) {
   }
 
   const state = binStates[binId];
+  const capacity = BIN_CONFIGS[binId].capacity;
   
-  // Fill level increases slowly (trash accumulation)
-  state.fillPct = Math.min(100, state.fillPct + randomValue(-2, 5));
+  // Weight increases slowly (trash accumulation)
+  // Randomly add 0-50g, occasionally remove trash (emptying)
+  const weightChange = Math.random() < 0.95 ? randomValue(0, 0.05, 3) : -state.weightKg * 0.8;
+  state.weightKg = Math.max(0, Math.min(capacity, state.weightKg + weightChange));
   
-  // Temperature fluctuates slightly
-  state.temperature += randomValue(-1, 1, 1);
-  state.temperature = Math.max(RANGES.temperature.min, Math.min(RANGES.temperature.max, state.temperature));
-  
-  // Humidity changes slowly
-  state.humidity += randomValue(-3, 3, 1);
-  state.humidity = Math.max(RANGES.humidity.min, Math.min(RANGES.humidity.max, state.humidity));
-  
-  // Battery drains slowly
-  state.battery = Math.max(RANGES.battery.min, state.battery - randomValue(0, 0.5, 1));
-  
-  // Distance decreases as bin fills (ultrasonic sensor)
-  state.distance = Math.round(400 - (state.fillPct / 100) * 390);
+  // Calculate fill percentage from weight
+  state.fillPct = parseFloat(((state.weightKg / capacity) * 100).toFixed(2));
   
   return state;
 }
 
-// Convert sensor data to ESP32 format
+// Convert sensor data to ESP32 format (matching .ino file exactly)
 function generateBinData(binId) {
   const state = updateBinState(binId);
+  const config = BIN_CONFIGS[binId];
+  const isBlocked = Math.random() < 0.02; // 2% chance of blockage
   
+  // Determine status (matching ESP32 logic)
+  let status;
+  if (isBlocked || state.fillPct >= 90) {
+    status = "NEEDS_EMPTYING";
+  } else if (state.fillPct >= 70) {
+    status = "Warning";
+  } else {
+    status = "Normal";
+  }
+  
+  // Match exact ESP32 format: weightKg, fillPct, status, isBlocked, updatedAt, name, location, capacity
   return {
-    binId: binId,
-    fillPct: Math.round(state.fillPct),
-    temperature: parseFloat(state.temperature.toFixed(1)),
-    humidity: parseFloat(state.humidity.toFixed(1)),
-    battery: Math.round(state.battery),
-    distance: state.distance,
-    timestamp: new Date().toISOString(),
-    deviceId: `ESP32_${binId.toUpperCase()}`,
-    latitude: 31.5204 + (Math.random() - 0.5) * 0.01, // Lahore coords with variation
-    longitude: 74.3587 + (Math.random() - 0.5) * 0.01,
-    status: state.fillPct > 80 ? 'critical' : state.fillPct > 60 ? 'warning' : 'normal'
+    weightKg: parseFloat(state.weightKg.toFixed(5)),
+    fillPct: state.fillPct,
+    status: status,
+    isBlocked: isBlocked,
+    updatedAt: new Date().toISOString(),
+    name: config.name,
+    location: config.location,
+    capacity: config.capacity
   };
 }
 
@@ -130,12 +133,19 @@ async function pushBinData(binId) {
   const binData = generateBinData(binId);
   
   try {
-    // Push to Firebase Realtime Database
-    await db.ref(`bins/${binId}`).set(binData);
+    // Update main bin data (matching ESP32 updateNode behavior)
+    await db.ref(`bins/${binId}`).update(binData);
+    
+    // Add to history (matching ESP32 addToHistory)
+    await db.ref(`bins/${binId}/history`).push({
+      weightKg: binData.weightKg,
+      fillPct: binData.fillPct,
+      timestamp: binData.updatedAt
+    });
     
     // Log the update
-    const statusEmoji = binData.fillPct > 80 ? '🔴' : binData.fillPct > 60 ? '🟡' : '🟢';
-    console.log(`${statusEmoji} ${binId}: ${binData.fillPct}% | Temp: ${binData.temperature}°C | Battery: ${binData.battery}%`);
+    const statusEmoji = binData.fillPct >= 90 ? '🔴' : binData.fillPct >= 70 ? '🟡' : '🟢';
+    console.log(`${statusEmoji} ${binId} (${binData.name}): ${binData.fillPct.toFixed(2)}% | Weight: ${binData.weightKg.toFixed(3)}kg | ${binData.status}`);
     
   } catch (error) {
     console.error(`❌ Error updating ${binId}:`, error.message);
@@ -160,8 +170,12 @@ function startSimulation() {
   console.log('╔══════════════════════════════════════════════════════════════════════╗');
   console.log('║              🗑️  ESP32 Bin Data Simulator Started                   ║');
   console.log('╚══════════════════════════════════════════════════════════════════════╝\n');
-  console.log(`📡 Simulating ${BIN_IDS.length} bins: ${BIN_IDS.join(', ')}`);
-  console.log(`⏱️  Update interval: ${UPDATE_INTERVAL / 1000} seconds`);
+  console.log(`📡 Simulating ${BIN_IDS.length} bins (bin1 is reserved for real ESP32 hardware):`);
+  BIN_IDS.forEach(id => {
+    const config = BIN_CONFIGS[id];
+    console.log(`   - ${id}: ${config.name} (${config.location}) - ${config.capacity}kg capacity`);
+  });
+  console.log(`\n⏱️  Update interval: ${UPDATE_INTERVAL / 1000} seconds`);
   console.log(`🔗 Database: Firebase Realtime Database\n`);
   console.log('Press Ctrl+C to stop\n');
   console.log('─'.repeat(100));

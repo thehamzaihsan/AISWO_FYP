@@ -35,7 +35,7 @@ function getStatusDetails(fillPct = 0) {
 }
 
 function EmployeeDashboard({ user }) {
-  const displayName = "Osama Khan";
+  const displayName = user?.name || "Operator";
   const [assignedIds, setAssignedIds] = useState(user?.assignedBins || []);
   const [bins, setBins] = useState({});
   const [loading, setLoading] = useState(true);

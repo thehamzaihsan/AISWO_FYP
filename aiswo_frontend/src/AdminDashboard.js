@@ -34,8 +34,7 @@ function AdminDashboard() {
     name: '',
     email: '',
     phone: '',
-    password: '',
-    assignedBins: []
+    password: ''
   });
 
   useEffect(() => {
@@ -88,7 +87,7 @@ function AdminDashboard() {
       fetchData();
       setShowOperatorForm(false);
       setEditingOperator(null);
-      setOperatorForm({ id: '', name: '', email: '', phone: '', password: '', assignedBins: [] });
+      setOperatorForm({ id: '', name: '', email: '', phone: '', password: '' });
     } catch (error) {
       console.error('Error saving operator:', error);
       alert(`Failed to save operator: ${error.response?.data?.error || error.message}`);
@@ -116,8 +115,7 @@ function AdminDashboard() {
       name: operator.name || '',
       email: operator.email || '',
       phone: operator.phone || '',
-      password: '', // Don't show existing password
-      assignedBins: operator.assignedBins || []
+      password: '' // Don't show existing password
     });
     setEditingOperator(operatorId);
     setShowOperatorForm(true);
@@ -246,7 +244,7 @@ function AdminDashboard() {
             </h2>
             <Button onClick={() => {
               setEditingOperator(null);
-              setOperatorForm({ id: '', name: '', email: '', phone: '', password: '', assignedBins: [] });
+              setOperatorForm({ id: '', name: '', email: '', phone: '', password: '' });
               setShowOperatorForm(true);
             }}>
               <Plus className="mr-2 h-4 w-4" /> Add New Operator
@@ -275,7 +273,9 @@ function AdminDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Assigned Bins:</span>
-                      <span className="font-medium">{operator.assignedBins?.length || 0}</span>
+                      <span className="font-medium">
+                        {Object.values(bins).filter(b => b.operatorId === operatorId).length}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -422,51 +422,7 @@ function AdminDashboard() {
                 placeholder={editingOperator ? "Enter new password to change" : "Enter password"}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Assigned Bins</Label>
-              <div className="border rounded-md p-3 space-y-2">
-                {Object.keys(bins).length > 0 ? (
-                  Object.entries(bins).map(([binId, bin]) => (
-                    <div key={binId} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`bin-${binId}`}
-                        checked={operatorForm.assignedBins.includes(binId)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setOperatorForm({
-                              ...operatorForm,
-                              assignedBins: [...operatorForm.assignedBins, binId]
-                            });
-                          } else {
-                            setOperatorForm({
-                              ...operatorForm,
-                              assignedBins: operatorForm.assignedBins.filter(b => b !== binId)
-                            });
-                          }
-                        }}
-                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                      />
-                      <label htmlFor={`bin-${binId}`} className="text-sm cursor-pointer flex-1">
-                        {binId.toUpperCase()} - {bin.name || bin.location || 'Unknown'}
-                      </label>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No bins available</p>
-                )}
-              </div>
-              {operatorForm.assignedBins.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="text-sm text-muted-foreground">Selected:</span>
-                  {operatorForm.assignedBins.map(binId => (
-                    <Badge key={binId} variant="secondary">
-                      {binId.toUpperCase()}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowOperatorForm(false)}>Cancel</Button>
               <Button type="submit">{editingOperator ? 'Update' : 'Create'}</Button>

@@ -687,6 +687,29 @@ app.delete("/operators/:id", async (req, res) => {
     if (!operatorDoc.exists) {
       return res.status(404).json({ error: "Operator not found" });
     }
+
+    // Unassign bins in Realtime Database
+    if (db) {
+      const snapshot = await db.ref('bins').once('value');
+      const bins = snapshot.val() || {};
+      const updates = {};
+      Object.entries(bins).forEach(([binId, bin]) => {
+        if (bin.operatorId === id) {
+          updates[`bins/${binId}/operatorId`] = 'unassigned';
+        }
+      });
+      if (Object.keys(updates).length > 0) {
+        await db.ref().update(updates);
+      }
+    }
+
+    // Unassign bins in Firestore
+    const binsQuery = await firestore.collection('bins').where('operatorId', '==', id).get();
+    const batch = firestore.batch();
+    binsQuery.forEach(doc => {
+      batch.update(doc.ref, { operatorId: 'unassigned' });
+    });
+    await batch.commit();
     
     await firestore.collection('operators').doc(id).delete();
     res.json({ message: "Operator deleted successfully" });
@@ -921,11 +944,20 @@ app.post("/bins", async (req, res) => {
   };
   
   try {
+    // Save to Realtime Database
+    if (db) {
+      await db.ref('bins/' + id).set(binData);
+    }
+
+    // Sync to Firestore if available
     if (firestore) {
       await firestore.collection('bins').doc(id).set(binData);
+    }
+
+    if (db || firestore) {
       res.json({ message: "Bin created successfully", bin: binData });
     } else {
-      return res.status(503).json({ error: "Firestore not initialized" });
+      return res.status(503).json({ error: "Database not initialized" });
     }
   } catch (error) {
     console.error("Error creating bin:", error);
@@ -939,27 +971,52 @@ app.put("/bins/:id", async (req, res) => {
   const { name, location, capacity, operatorId, status } = req.body;
   
   try {
-    if (firestore) {
-      const binDoc = await firestore.collection('bins').doc(id).get();
-      if (!binDoc.exists) {
-        return res.status(404).json({ error: "Bin not found" });
+    let binExists = false;
+    let currentData = {};
+
+    // Check Realtime Database first
+    if (db) {
+      const snapshot = await db.ref('bins/' + id).once('value');
+      if (snapshot.exists()) {
+        binExists = true;
+        currentData = snapshot.val();
       }
-      
-      const updateData = {
-        name: name || binDoc.data().name,
-        location: location || binDoc.data().location,
-        capacity: capacity || binDoc.data().capacity,
-        operatorId: operatorId || binDoc.data().operatorId,
-        status: status || binDoc.data().status,
-        updatedAt: new Date().toISOString()
-      };
-      
-      await firestore.collection('bins').doc(id).update(updateData);
-      res.json({ message: "Bin updated successfully", bin: updateData });
-    } else {
-      // Fallback to dummy data
-      return res.status(503).json({ error: "Firestore not initialized" });
     }
+
+    // Check Firestore if not found in Realtime DB
+    if (!binExists && firestore) {
+      const binDoc = await firestore.collection('bins').doc(id).get();
+      if (binDoc.exists) {
+        binExists = true;
+        currentData = binDoc.data();
+      }
+    }
+
+    if (!binExists) {
+      return res.status(404).json({ error: "Bin not found" });
+    }
+
+    const updateData = {
+      name: name || currentData.name,
+      location: location || currentData.location,
+      capacity: capacity || currentData.capacity,
+      operatorId: operatorId || currentData.operatorId,
+      status: status || currentData.status,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Update Realtime Database
+    if (db) {
+      await db.ref('bins/' + id).update(updateData);
+    }
+
+    // Update Firestore
+    if (firestore) {
+      await firestore.collection('bins').doc(id).set(updateData, { merge: true });
+    }
+
+    res.json({ message: "Bin updated successfully", bin: updateData });
+
   } catch (error) {
     console.error("Error updating bin:", error);
     res.status(500).json({ error: "Failed to update bin" });
@@ -971,19 +1028,17 @@ app.delete("/bins/:id", async (req, res) => {
   const id = req.params.id;
   
   try {
-    if (firestore) {
-      const binDoc = await firestore.collection('bins').doc(id).get();
-      if (!binDoc.exists) {
-        return res.status(404).json({ error: "Bin not found" });
-      }
-      
-      await firestore.collection('bins').doc(id).delete();
-      res.json({ message: "Bin deleted successfully" });
-    } else {
-      // Fallback to dummy data
-      return res.status(503).json({ error: "Firestore not initialized" });
-      res.json({ message: "Bin deleted successfully" });
+    // Delete from Realtime Database
+    if (db) {
+      await db.ref('bins/' + id).remove();
     }
+
+    // Delete from Firestore
+    if (firestore) {
+      await firestore.collection('bins').doc(id).delete();
+    }
+
+    res.json({ message: "Bin deleted successfully" });
   } catch (error) {
     console.error("Error deleting bin:", error);
     res.status(500).json({ error: "Failed to delete bin" });
