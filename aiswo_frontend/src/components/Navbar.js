@@ -1,13 +1,9 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Recycle, Home, LayoutDashboard, Cloud, Settings, Trash2, MessageSquare, LogOut, LogIn } from "lucide-react";
 import { Button } from "./ui/button";
 
 function Navbar({ showChatBot, setShowChatBot, user, onLogout }) {
-  const location = useLocation();
-  const isLanding = location.pathname === '/';
-
-  if (isLanding) return null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

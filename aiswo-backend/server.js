@@ -712,7 +712,7 @@ app.delete("/operators/:id", async (req, res) => {
   }
 });
 
-// Login endpoint
+// Login endpoint (supports both admin and operator login)
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -725,7 +725,33 @@ app.post("/login", async (req, res) => {
         return res.status(503).json({ error: "Firestore not initialized" });
     }
 
-    // Check operators collection
+    // First, check admins collection
+    const adminId = email.toLowerCase().replace(/[@.]/g, '_');
+    const adminDoc = await firestore.collection('admins').doc(adminId).get();
+
+    if (adminDoc.exists) {
+      const adminData = adminDoc.data();
+      
+      if (!adminData.password) {
+        return res.status(401).json({ error: "Account setup incomplete" });
+      }
+
+      const passwordMatch = await bcrypt.compare(password, adminData.password);
+
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Return admin info (excluding password)
+      const { password: _, ...adminProfile } = adminData;
+      return res.json({
+        ...adminProfile,
+        userId: adminDoc.id,
+        role: 'admin'
+      });
+    }
+
+    // If not admin, check operators collection
     const operatorsRef = firestore.collection('operators');
     const snapshot = await operatorsRef.where('email', '==', email).get();
 
@@ -737,9 +763,6 @@ app.post("/login", async (req, res) => {
     const userData = userDoc.data();
 
     // Verify password
-    // Note: If existing operators don't have a password field, this might fail or need handling.
-    // We assume new operators created via POST /operators will have hashed passwords.
-    // For legacy data without password, we might need a migration or default check.
     if (!userData.password) {
          return res.status(401).json({ error: "Account setup incomplete (no password set)" });
     }
@@ -750,10 +773,11 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Return user info (excluding password)
+    // Return operator info (excluding password)
     const { password: _, ...userProfile } = userData;
     res.json({
         ...userProfile,
+        userId: userDoc.id,
         operatorId: userDoc.id,
         role: userProfile.role || 'operator' // Default to operator if role not set
     });
