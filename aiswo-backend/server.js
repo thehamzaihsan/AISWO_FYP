@@ -716,33 +716,46 @@ app.delete("/operators/:id", async (req, res) => {
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
+  console.log(`[LOGIN] Attempt for email: ${email}`);
+
   if (!email || !password) {
+    console.log('[LOGIN] Missing email or password');
     return res.status(400).json({ error: "Email and password are required" });
   }
 
   try {
     if (!firestore) {
+        console.log('[LOGIN] Firestore not initialized');
         return res.status(503).json({ error: "Firestore not initialized" });
     }
 
     // First, check admins collection
     const adminId = email.toLowerCase().replace(/[@.]/g, '_');
+    console.log(`[LOGIN] Checking admin with ID: ${adminId}`);
+    
     const adminDoc = await firestore.collection('admins').doc(adminId).get();
+    console.log(`[LOGIN] Admin doc exists: ${adminDoc.exists}`);
 
     if (adminDoc.exists) {
       const adminData = adminDoc.data();
+      console.log(`[LOGIN] Admin data retrieved for: ${adminData.email}`);
       
       if (!adminData.password) {
+        console.log('[LOGIN] Admin has no password');
         return res.status(401).json({ error: "Account setup incomplete" });
       }
 
+      console.log('[LOGIN] Comparing passwords...');
       const passwordMatch = await bcrypt.compare(password, adminData.password);
+      console.log(`[LOGIN] Password match: ${passwordMatch}`);
 
       if (!passwordMatch) {
+        console.log('[LOGIN] Password mismatch - returning invalid credentials');
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Return admin info (excluding password)
+      console.log('[LOGIN] Login successful - returning admin data');
       const { password: _, ...adminProfile } = adminData;
       return res.json({
         ...adminProfile,
@@ -752,10 +765,12 @@ app.post("/login", async (req, res) => {
     }
 
     // If not admin, check operators collection
+    console.log('[LOGIN] Admin not found, checking operators...');
     const operatorsRef = firestore.collection('operators');
     const snapshot = await operatorsRef.where('email', '==', email).get();
 
     if (snapshot.empty) {
+      console.log('[LOGIN] Operator not found either - invalid credentials');
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
