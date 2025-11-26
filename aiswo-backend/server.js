@@ -1262,52 +1262,68 @@ app.post('/chatbot/message', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Fetch current bins data to provide to chatbot
+
+    // Fetch current bins data using the same logic as /bins endpoint
     let bins = {};
-    let realBinData = null;
-
-    // Get bin1 from Realtime Database
-    if (db) {
-      try {
-        const snapshot = await db.ref("bins/bin1").once("value");
-        realBinData = snapshot.val() || {};
-        bins.bin1 = realBinData;
-      } catch (error) {
-        realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
-        bins.bin1 = realBinData;
-      }
-    } else {
-      realBinData = { weightKg: 5.2, fillPct: 52, status: "OK", updatedAt: new Date().toISOString() };
-      bins.bin1 = realBinData;
-    }
-
-    // Get other bins from Firestore
+    let firestoreBins = {};
+    let realtimeBins = {};
+    
+    // Step 1: Get metadata from Firestore bins collection
     if (firestore) {
       try {
         const binsSnapshot = await firestore.collection('bins').get();
-        
-        if (binsSnapshot.size > 0) {
-          binsSnapshot.forEach(doc => {
-            const binData = doc.data();
-            const binId = doc.id;
-            
-            if (binId !== 'bin1') {
-              const weightedData = generateWeightedBinData(realBinData, binId);
-              bins[binId] = {
-                ...binData,
-                ...weightedData,
-                lastFetched: new Date().toISOString()
-              };
-            }
-          });
-        }
+        binsSnapshot.forEach(doc => {
+          firestoreBins[doc.id] = doc.data();
+        });
+        console.log(`✅ Chatbot: Retrieved ${Object.keys(firestoreBins).length} bins from Firestore`);
       } catch (error) {
-        console.log("Firestore error:", error);
+        console.log(`⚠️ Chatbot: Error fetching bins from Firestore: ${error.message}`);
       }
     }
+    
+    // Step 2: Get technical data from Realtime Database
+    if (db) {
+      try {
+        const snapshot = await db.ref("bins").once("value");
+        realtimeBins = snapshot.val() || {};
+        console.log(`✅ Chatbot: Retrieved ${Object.keys(realtimeBins).length} bins from Realtime Database`);
+      } catch (error) {
+        console.log(`⚠️ Chatbot: Error fetching bins from Realtime Database: ${error.message}`);
+      }
+    }
+    
+    // Step 3: Merge bins from both sources (same logic as /bins endpoint)
+    const allBinIds = new Set([
+      ...Object.keys(firestoreBins),
+      ...Object.keys(realtimeBins)
+    ]);
+    
+    allBinIds.forEach(binId => {
+      const metadata = firestoreBins[binId] || {};
+      const technicalData = realtimeBins[binId] || {};
+      
+      bins[binId] = {
+        // Metadata from Firestore
+        binId: metadata.binId || binId,
+        name: metadata.name || technicalData.name || binId.toUpperCase(),
+        location: metadata.location || technicalData.location || 'Unknown',
+        capacity: metadata.capacity || technicalData.capacity || 3,
+        assignedTo: metadata.assignedTo || null,
+        
+        // Technical data from Realtime DB (real-time sensor readings)
+        weightKg: technicalData.weightKg || 0,
+        fillPct: technicalData.fillPct || 0,
+        status: technicalData.status || 'Normal',
+        isBlocked: technicalData.isBlocked || false,
+        updatedAt: technicalData.updatedAt || new Date().toISOString(),
+        
+        lastFetched: new Date().toISOString()
+      };
+    });
 
     // Update cached bins for chatbot to use
     cachedBins = bins;
+
 
     // Get response from chatbot
     const response = await chatbot.chat(message);
