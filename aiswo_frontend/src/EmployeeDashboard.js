@@ -319,7 +319,7 @@ function EmployeeDashboard({ user }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/operators/${operatorId}/tasks/${taskId}`,
+        `${API_CONFIG.BACKEND_URL}/operators/${operatorId}/tasks/${taskId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -355,7 +355,7 @@ function EmployeeDashboard({ user }) {
 
     setIssueStatus({ state: "loading" });
     try {
-      const response = await fetch("http://localhost:5000/chatbot/report", {
+      const response = await fetch(`${API_CONFIG.BACKEND_URL}/chatbot/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
