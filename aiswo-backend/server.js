@@ -416,8 +416,14 @@ app.get("/bins", async (req, res) => {
     }
     
     // Step 4: Merge Firestore metadata with Realtime technical data
-    Object.keys(firestoreBins).forEach(binId => {
-      const metadata = firestoreBins[binId];
+    // Get all unique bin IDs from both sources
+    const allBinIds = new Set([
+      ...Object.keys(firestoreBins),
+      ...Object.keys(realtimeBins)
+    ]);
+    
+    allBinIds.forEach(binId => {
+      const metadata = firestoreBins[binId] || {};
       const technicalData = realtimeBins[binId] || {};
       
       bins[binId] = {
@@ -426,7 +432,7 @@ app.get("/bins", async (req, res) => {
         name: metadata.name || technicalData.name || binId.toUpperCase(),
         location: metadata.location || technicalData.location || 'Unknown',
         capacity: metadata.capacity || technicalData.capacity || 3,
-        assignedTo: metadata.assignedTo,
+        assignedTo: metadata.assignedTo || null,
         
         // Technical data from Realtime DB (sensor readings)
         weightKg: technicalData.weightKg || 0,
@@ -438,6 +444,7 @@ app.get("/bins", async (req, res) => {
         lastFetched: new Date().toISOString()
       };
     });
+
     
     // If no bins found, provide dummy data for bin1
     if (Object.keys(bins).length === 0) {
